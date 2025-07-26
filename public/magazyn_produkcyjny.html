@@ -1,0 +1,390 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Aplikacja Magazynu Produkcyjnego</title>
+    <!-- Ładowanie Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f3f4f6;
+            color: #374151;
+        }
+        table {
+            width: 100%;
+            border-collapse: separate;
+            border-spacing: 0;
+            overflow: hidden;
+            border-radius: 0.75rem;
+        }
+        th, td {
+            padding: 1rem 1.5rem;
+            text-align: left;
+            border-bottom: 1px solid #e5e7eb;
+        }
+        th {
+            background-color: #4f46e5;
+            color: white;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+        tr:nth-child(even) {
+            background-color: #f9fafb;
+        }
+        tr:hover {
+            background-color: #eef2ff;
+        }
+        th:first-child { border-top-left-radius: 0.75rem; }
+        th:last-child { border-top-right-radius: 0.75rem; }
+        tr:last-child td:first-child { border-bottom-left-radius: 0.75rem; }
+        tr:last-child td:last-child { border-bottom-right-radius: 0.75rem; }
+
+        /* Kontener na etykiety do druku (domyślnie poza ekranem) */
+        .print-container {
+            position: absolute;
+            left: -9999px; /* Przesuń poza widoczny obszar ekranu */
+            top: 0;
+            width: 100%; /* Upewnij się, że ma szerokość */
+            height: auto; /* Upewnij się, że ma wysokość */
+            overflow: hidden; /* Aby nie wpływał na scrollowanie strony */
+            z-index: -1; /* Umieść pod innymi elementami */
+        }
+
+        /* Styl dla wydruku etykiet */
+        @media print {
+            body > *:not(.print-container) {
+                display: none; /* Ukryj wszystko poza kontenerem do druku */
+            }
+            .print-container {
+                position: static; /* Przywróć normalne pozycjonowanie dla druku */
+                left: auto;
+                top: auto;
+                display: block; /* Upewnij się, że jest widoczny podczas druku */
+                width: 100%;
+                margin: 0;
+                padding: 0;
+                z-index: auto;
+            }
+            .label-item {
+                display: flex; /* Użyj flexbox do ułożenia elementów */
+                align-items: center; /* Wyśrodkuj w pionie */
+                width: 9cm; /* Szerokość etykiety */
+                height: 5cm; /* Wysokość etykiety */
+                border: 1px solid #333;
+                margin: 0.5cm;
+                padding: 0.5cm;
+                box-sizing: border-box;
+                page-break-inside: avoid; /* Zapobiega łamaniu etykiety */
+                overflow: hidden; /* Ukryj to, co się nie mieści */
+            }
+            .label-item .qr-code-container {
+                flex-shrink: 0; /* Zapobiegaj kurczeniu się kodu QR */
+                margin-right: 0.5cm; /* Odstęp między kodem a tekstem */
+            }
+            .label-item img {
+                width: 3.5cm !important; /* Zmniejszony kod QR */
+                height: 3.5cm !important;
+                display: block;
+            }
+            .label-item .label-text {
+                display: flex;
+                flex-direction: column;
+                justify-content: center;
+                text-align: left;
+            }
+            .label-item h3 {
+                font-size: 14px;
+                font-weight: bold;
+                margin: 2px 0;
+            }
+            .label-item p {
+                font-size: 12px;
+                margin: 2px 0;
+            }
+        }
+    </style>
+</head>
+<body class="p-8">
+    <div class="container mx-auto bg-white shadow-lg rounded-xl overflow-hidden mb-8">
+        <h1 class="text-3xl font-bold text-center py-6 bg-indigo-600 text-white rounded-t-xl">
+            Aplikacja Magazynu Produkcyjnego
+        </h1>
+        <div class="p-6">
+            <h2 class="text-2xl font-semibold mb-4 text-indigo-700">Dodaj Nowy Element</h2>
+            <form id="addItemForm" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-8 p-4 border rounded-lg bg-gray-50">
+                <div>
+                    <label for="itemId" class="block text-sm font-medium text-gray-700">ID Elementu:</label>
+                    <input type="text" id="itemId" name="itemId" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm p-2">
+                </div>
+                <div>
+                    <label for="itemName" class="block text-sm font-medium text-gray-700">Nazwa Elementu:</label>
+                    <input type="text" id="itemName" name="itemName" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm p-2">
+                </div>
+                <div>
+                    <label for="description" class="block text-sm font-medium text-gray-700">Opis:</label>
+                    <input type="text" id="description" name="description" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm p-2">
+                </div>
+                <div>
+                    <label for="category" class="block text-sm font-medium text-gray-700">Kategoria:</label>
+                    <input type="text" id="category" name="category" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm p-2">
+                </div>
+                <div>
+                    <label for="quantity" class="block text-sm font-medium text-gray-700">Ilość:</label>
+                    <input type="number" id="quantity" name="quantity" required min="0" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm p-2">
+                </div>
+                <div>
+                    <label for="unit" class="block text-sm font-medium text-gray-700">Jednostka:</label>
+                    <input type="text" id="unit" name="unit" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm p-2">
+                </div>
+                <div>
+                    <label for="location" class="block text-sm font-medium text-gray-700">Lokalizacja:</label>
+                    <input type="text" id="location" name="location" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm p-2">
+                </div>
+                <div>
+                    <label for="supplier" class="block text-sm font-medium text-gray-700">Dostawca:</label>
+                    <input type="text" id="supplier" name="supplier" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm p-2">
+                </div>
+                <div>
+                    <label for="reorderLevel" class="block text-sm font-medium text-gray-700">Poziom Zamówienia:</label>
+                    <input type="number" id="reorderLevel" name="reorderLevel" min="0" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm p-2">
+                </div>
+                <div class="md:col-span-2 lg:col-span-3 flex justify-end">
+                    <button type="submit" class="inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+                        Dodaj Element
+                    </button>
+                </div>
+            </form>
+
+            <h2 class="text-2xl font-semibold mb-4 text-indigo-700">Lista Elementów</h2>
+            <button id="printLabelsBtn" class="mb-4 inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500">
+                Drukuj Etykiety
+            </button>
+            <table class="min-w-full divide-y divide-gray-200">
+                <thead>
+                    <tr>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider">
+                            ID Elementu
+                        </th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider">
+                            Nazwa Elementu
+                        </th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider">
+                            Ilość
+                        </th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider">
+                            Lokalizacja
+                        </th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider">
+                            Akcje
+                        </th>
+                    </tr>
+                </thead>
+                <tbody id="inventoryTableBody" class="bg-white divide-y divide-gray-200">
+                    <!-- Elementy będą dodawane tutaj przez JavaScript -->
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Kontener na etykiety do druku (domyślnie poza ekranem) -->
+    <div id="printContainer" class="print-container"></div>
+
+    <!-- Ładowanie biblioteki do generowania kodów QR -->
+    <!-- WAŻNE: Ten skrypt musi być załadowany PRZED Twoim głównym skryptem, aby QRCode było dostępne -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+
+    <script>
+        const addItemForm = document.getElementById('addItemForm');
+        const inventoryTableBody = document.getElementById('inventoryTableBody');
+        const printLabelsBtn = document.getElementById('printLabelsBtn');
+        const printContainer = document.getElementById('printContainer');
+
+        // Adres URL Twojego serwera Express
+        const API_URL = 'http://localhost:3000/api/inventory';
+
+        let inventory = []; // Tablica do przechowywania elementów magazynowych
+
+        // Funkcja do pobierania danych z serwera
+        async function fetchInventory() {
+            try {
+                const response = await fetch(API_URL);
+                if (!response.ok) {
+                    throw new Error(`Błąd HTTP! Status: ${response.status}`);
+                }
+                inventory = await response.json();
+                renderInventory(); // Odśwież tabelę po pobraniu danych
+            } catch (error) {
+                console.error('Błąd podczas pobierania danych z serwera:', error);
+                alert('Nie udało się pobrać danych magazynowych. Upewnij się, że serwer działa.');
+            }
+        }
+
+        // Funkcja do renderowania (wyświetlania) elementów w tabeli
+        function renderInventory() {
+            inventoryTableBody.innerHTML = ''; // Wyczyść tabelę przed ponownym renderowaniem
+            inventory.forEach((item, index) => {
+                const row = inventoryTableBody.insertRow();
+                row.innerHTML = `
+                    <td class="px-6 py-4 whitespace-nowrap">${item.itemId}</td>
+                    <td class="px-6 py-4 whitespace-nowrap">${item.itemName}</td>
+                    <td class="px-6 py-4 whitespace-nowrap">${item.quantity} ${item.unit || ''}</td>
+                    <td class="px-6 py-4 whitespace-nowrap">${item.location || ''}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                        <button onclick="printSingleLabel('${item.itemId}')" class="text-indigo-600 hover:text-indigo-900">Drukuj</button>
+                        <button onclick="deleteItem('${item.itemId}')" class="text-red-600 hover:text-red-900 ml-4">Usuń</button>
+                    </td>
+                `;
+            });
+        }
+
+        // Funkcja do dodawania nowego elementu
+        addItemForm.addEventListener('submit', async function(event) {
+            event.preventDefault(); // Zapobiegaj domyślnej wysyłce formularza
+
+            const newItem = {
+                itemId: document.getElementById('itemId').value,
+                itemName: document.getElementById('itemName').value,
+                description: document.getElementById('description').value,
+                category: document.getElementById('category').value,
+                quantity: parseInt(document.getElementById('quantity').value),
+                unit: document.getElementById('unit').value,
+                location: document.getElementById('location').value,
+                supplier: document.getElementById('supplier').value,
+                reorderLevel: parseInt(document.getElementById('reorderLevel').value),
+                lastUpdated: new Date().toISOString().slice(0, 10) // Aktualna data w formacie YYYY-MM-DD
+            };
+
+            try {
+                const response = await fetch(API_URL, {
+                    method: 'POST', // Metoda HTTP POST do dodawania danych
+                    headers: {
+                        'Content-Type': 'application/json' // Informuje serwer, że wysyłamy JSON
+                    },
+                    body: JSON.stringify(newItem) // Konwertuje obiekt JS na ciąg JSON
+                });
+
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(`Błąd HTTP! Status: ${response.status}, Wiadomość: ${errorData.message}`);
+                }
+
+                await fetchInventory(); // Odśwież dane po dodaniu
+                addItemForm.reset(); // Wyczyść formularz
+                alert('Element dodany pomyślnie!');
+            } catch (error) {
+                console.error('Błąd podczas dodawania elementu:', error);
+                alert(`Nie udało się dodać elementu: ${error.message}`);
+            }
+        });
+
+        // Funkcja do usuwania elementu
+        async function deleteItem(itemId) {
+            if (confirm(`Czy na pewno chcesz usunąć element o ID: ${itemId}?`)) {
+                try {
+                    const response = await fetch(`${API_URL}/${itemId}`, {
+                        method: 'DELETE' // Metoda HTTP DELETE do usuwania danych
+                    });
+
+                    if (!response.ok) {
+                        const errorData = await response.json();
+                        throw new Error(`Błąd HTTP! Status: ${response.status}, Wiadomość: ${errorData.message}`);
+                    }
+
+                    await fetchInventory(); // Odśwież dane po usunięciu
+                    alert(`Element ${itemId} usunięty pomyślnie!`);
+                } catch (error) {
+                    console.error('Błąd podczas usuwania elementu:', error);
+                    alert(`Nie udało się usunąć elementu: ${error.message}`);
+                }
+            }
+        }
+
+        // Funkcja do generowania pojedynczej etykiety
+        function generateLabel(item) {
+            const labelDiv = document.createElement('div');
+            labelDiv.classList.add('label-item');
+
+            // Kontener na kod QR
+            const qrCodeContainer = document.createElement('div');
+            qrCodeContainer.classList.add('qr-code-container');
+            
+            // Kontener na tekst
+            const textContainer = document.createElement('div');
+            textContainer.classList.add('label-text');
+
+            const itemNameElem = document.createElement('h3');
+            itemNameElem.textContent = item.itemName;
+            textContainer.appendChild(itemNameElem);
+
+            const itemIdElem = document.createElement('p');
+            itemIdElem.textContent = `ID: ${item.itemId}`;
+            textContainer.appendChild(itemIdElem);
+
+            const quantityElem = document.createElement('p');
+            quantityElem.textContent = `Ilość: ${item.quantity} ${item.unit || ''}`;
+            textContainer.appendChild(quantityElem);
+
+            const locationElem = document.createElement('p');
+            locationElem.textContent = `Lokalizacja: ${item.location || ''}`;
+            textContainer.appendChild(locationElem);
+
+            labelDiv.appendChild(qrCodeContainer);
+            labelDiv.appendChild(textContainer);
+            
+            printContainer.appendChild(labelDiv);
+
+            // Generuj kod QR
+            new QRCode(qrCodeContainer, {
+                text: item.itemId,
+                width: 128,
+                height: 128,
+                colorDark: "#000000",
+                colorLight: "#ffffff",
+                correctLevel: QRCode.CorrectLevel.H
+            });
+        }
+
+        // Funkcja do drukowania pojedynczej etykiety
+        function printSingleLabel(itemId) {
+            const item = inventory.find(i => i.itemId === itemId);
+            if (!item) {
+                alert('Nie znaleziono elementu!');
+                return;
+            }
+
+            printContainer.innerHTML = ''; // Wyczyść kontener
+            generateLabel(item); // Wygeneruj jedną etykietę
+
+            setTimeout(() => {
+                window.print();
+            }, 500);
+        }
+
+        // Funkcja do generowania i drukowania wszystkich etykiet
+        printLabelsBtn.addEventListener('click', function() {
+            printContainer.innerHTML = ''; // Wyczyść kontener przed nowym drukiem
+
+            if (inventory.length === 0) {
+                alert('Brak elementów do wydrukowania etykiet.');
+                return;
+            }
+
+            // Generuj etykiety dla każdego elementu
+            inventory.forEach(item => {
+                generateLabel(item);
+            });
+
+            // Użyj opóźnienia, aby dać przeglądarce czas na wyrenderowanie wszystkich kodów QR
+            setTimeout(() => {
+                window.print(); // Wywołaj okno drukowania
+            }, 500); // Opóźnienie, aby zapewnić, że wszystko jest gotowe
+        });
+
+        // Inicjalizacja: pobierz dane z serwera przy starcie aplikacji
+        fetchInventory();
+    </script>
+</body>
+</html>
