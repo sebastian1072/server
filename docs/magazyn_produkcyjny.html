@@ -30,6 +30,7 @@
             font-weight: 600;
             text-transform: uppercase;
             letter-spacing: 0.05em;
+            cursor: pointer;
         }
         tr:nth-child(even) {
             background-color: #f9fafb;
@@ -41,6 +42,20 @@
         th:last-child { border-top-right-radius: 0.75rem; }
         tr:last-child td:first-child { border-bottom-left-radius: 0.75rem; }
         tr:last-child td:last-child { border-bottom-right-radius: 0.75rem; }
+
+        /* Ikony sortowania */
+        .sort-icon::after {
+            content: " ↕️";
+            font-size: 0.8em;
+        }
+        .sort-asc::after {
+            content: " ↑";
+            font-size: 0.8em;
+        }
+        .sort-desc::after {
+            content: " ↓";
+            font-size: 0.8em;
+        }
 
         /* Kontener na etykiety do druku (domyślnie poza ekranem) */
         .print-container {
@@ -147,6 +162,68 @@
             border-radius: 8px;
             background-color: #f9fafb;
         }
+
+        /* Responsywność na urządzeniach mobilnych */
+        @media (max-width: 768px) {
+            .p-8 {
+                padding: 1rem;
+            }
+            
+            table {
+                display: block;
+                overflow-x: auto;
+                white-space: nowrap;
+            }
+            
+            th, td {
+                padding: 0.5rem;
+            }
+            
+            .button-container {
+                display: flex;
+                flex-wrap: wrap;
+                gap: 0.5rem;
+            }
+            
+            .button-container button {
+                flex: 1;
+                min-width: 120px;
+            }
+            
+            .modal-content {
+                margin: 5% auto;
+                width: 95%;
+                padding: 15px;
+            }
+            
+            #scanner-container {
+                height: 250px;
+            }
+        }
+
+        /* Wskaźnik odświeżania */
+        .refresh-indicator {
+            display: inline-flex;
+            align-items: center;
+            font-size: 0.8rem;
+            color: #6b7280;
+            margin-left: 0.5rem;
+        }
+        
+        .refresh-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background-color: #10b981;
+            margin-right: 5px;
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.3; }
+            100% { opacity: 1; }
+        }
     </style>
 </head>
 <body class="p-8">
@@ -159,7 +236,12 @@
             <form id="addItemForm" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-8 p-4 border rounded-lg bg-gray-50">
                 <div>
                     <label for="itemId" class="block text-sm font-medium text-gray-700">ID Elementu:</label>
-                    <input type="text" id="itemId" name="itemId" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm p-2">
+                    <div class="flex">
+                        <input type="text" id="itemId" name="itemId" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm p-2">
+                        <button type="button" id="generateIdBtn" class="ml-2 mt-1 inline-flex items-center px-2 py-1 border border-transparent text-xs font-medium rounded shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+                            Auto
+                        </button>
+                    </div>
                 </div>
                 <div>
                     <label for="itemName" class="block text-sm font-medium text-gray-700">Nazwa Elementu:</label>
@@ -200,39 +282,64 @@
                 </div>
             </form>
 
-            <h2 class="text-2xl font-semibold mb-4 text-indigo-700">Lista Elementów</h2>
-            <div class="flex mb-4 space-x-2">
+            <div class="flex justify-between items-center mb-4">
+                <h2 class="text-2xl font-semibold text-indigo-700">
+                    Lista Elementów
+                    <span class="refresh-indicator">
+                        <span class="refresh-dot"></span>
+                        <span id="lastRefreshTime">Ostatnie odświeżenie: teraz</span>
+                    </span>
+                </h2>
+                
+                <div class="flex items-center">
+                    <input type="text" id="searchInput" placeholder="Szukaj..." class="mr-2 p-2 border rounded">
+                    <select id="filterCategory" class="mr-2 p-2 border rounded">
+                        <option value="">Wszystkie kategorie</option>
+                    </select>
+                </div>
+            </div>
+            
+            <div class="button-container flex flex-wrap mb-4 gap-2">
                 <button id="printLabelsBtn" class="inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500">
                     Drukuj Etykiety
                 </button>
                 <button id="scanQrBtn" class="inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
                     Skanuj Kod QR
                 </button>
+                <button id="exportCsvBtn" class="inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-yellow-600 hover:bg-yellow-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-yellow-500">
+                    Eksportuj CSV
+                </button>
+                <button id="refreshBtn" class="inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-gray-600 hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500">
+                    Odśwież Teraz
+                </button>
             </div>
-            <table class="min-w-full divide-y divide-gray-200">
-                <thead>
-                    <tr>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider">
-                            ID Elementu
-                        </th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider">
-                            Nazwa Elementu
-                        </th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider">
-                            Ilość
-                        </th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider">
-                            Lokalizacja
-                        </th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider">
-                            Akcje
-                        </th>
-                    </tr>
-                </thead>
-                <tbody id="inventoryTableBody" class="bg-white divide-y divide-gray-200">
-                    <!-- Elementy będą dodawane tutaj przez JavaScript -->
-                </tbody>
-            </table>
+            
+            <div class="overflow-x-auto">
+                <table class="min-w-full divide-y divide-gray-200">
+                    <thead>
+                        <tr>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider sort-icon" data-sort="itemId">
+                                ID Elementu
+                            </th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider sort-icon" data-sort="itemName">
+                                Nazwa Elementu
+                            </th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider sort-icon" data-sort="quantity">
+                                Ilość
+                            </th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider sort-icon" data-sort="location">
+                                Lokalizacja
+                            </th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider">
+                                Akcje
+                            </th>
+                        </tr>
+                    </thead>
+                    <tbody id="inventoryTableBody" class="bg-white divide-y divide-gray-200">
+                        <!-- Elementy będą dodawane tutaj przez JavaScript -->
+                    </tbody>
+                </table>
+            </div>
         </div>
     </div>
 
@@ -264,6 +371,19 @@
         </div>
     </div>
 
+    <!-- Modal podglądu etykiety (dla urządzeń mobilnych) -->
+    <div id="labelPreviewModal" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h2 class="text-xl font-semibold mb-4">Podgląd etykiety</h2>
+            <div id="labelPreviewContainer" class="border p-4 mb-4"></div>
+            <div class="flex justify-between">
+                <button id="downloadLabelPDF" class="bg-blue-600 text-white px-4 py-2 rounded">Pobierz PDF</button>
+                <button id="closePreviewBtn" class="bg-gray-600 text-white px-4 py-2 rounded">Zamknij</button>
+            </div>
+        </div>
+    </div>
+
     <!-- Ładowanie bibliotek -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
     <script src="https://unpkg.com/html5-qrcode"></script>
@@ -275,7 +395,7 @@
         const printContainer = document.getElementById('printContainer');
         const scanQrBtn = document.getElementById('scanQrBtn');
         const scannerModal = document.getElementById('scannerModal');
-        const closeModal = document.querySelector('.close');
+        const closeModal = document.querySelectorAll('.close');
         const scanResult = document.getElementById('scan-result');
         const scannedItemName = document.getElementById('scanned-item-name');
         const scannedItemId = document.getElementById('scanned-item-id');
@@ -284,14 +404,27 @@
         const addQuantityBtn = document.getElementById('add-quantity');
         const subtractQuantityBtn = document.getElementById('subtract-quantity');
         const updateInventoryBtn = document.getElementById('update-inventory');
+        const exportCsvBtn = document.getElementById('exportCsvBtn');
+        const refreshBtn = document.getElementById('refreshBtn');
+        const lastRefreshTime = document.getElementById('lastRefreshTime');
+        const generateIdBtn = document.getElementById('generateIdBtn');
+        const searchInput = document.getElementById('searchInput');
+        const filterCategory = document.getElementById('filterCategory');
+        const labelPreviewModal = document.getElementById('labelPreviewModal');
+        const labelPreviewContainer = document.getElementById('labelPreviewContainer');
+        const downloadLabelPDF = document.getElementById('downloadLabelPDF');
+        const closePreviewBtn = document.getElementById('closePreviewBtn');
 
         // Adres URL Twojego serwera Express
-        const API_URL = 'https://serwer.sebaruman.pl/api/inventory';
+        const API_URL = 'http://serwer.sebaruman.pl/api/inventory';
 
         let inventory = []; // Tablica do przechowywania elementów magazynowych
         let scannedItem = null; // Aktualnie zeskanowany element
         let quantityOperation = 'add'; // Domyślna operacja: 'add' lub 'subtract'
         let html5QrCode = null; // Referencja do skanera QR
+        let sortConfig = { field: 'itemId', direction: 'asc' }; // Domyślne sortowanie
+        let refreshInterval; // Referencja do interwału odświeżania
+        let filteredInventory = []; // Przefiltrowana lista elementów
 
         // Funkcja do pobierania danych z serwera
         async function fetchInventory() {
@@ -301,49 +434,263 @@
                     throw new Error(`Błąd HTTP! Status: ${response.status}`);
                 }
                 inventory = await response.json();
-                renderInventory(); // Odśwież tabelę po pobraniu danych
+                // Aktualizuj czas ostatniego odświeżenia
+                updateLastRefreshTime();
+                // Aktualizuj listę kategorii
+                updateCategoryFilter();
+                // Zastosuj filtrowanie i sortowanie
+                applyFiltersAndSort();
+                // Renderuj tabelę
+                renderInventory(); 
             } catch (error) {
                 console.error('Błąd podczas pobierania danych z serwera:', error);
-                alert('Nie udało się pobrać danych magazynowych. Upewnij się, że serwer działa.');
+                // Nie pokazujemy alertu przy automatycznym odświeżaniu
+                if (!refreshInterval) {
+                    alert('Nie udało się pobrać danych magazynowych. Upewnij się, że serwer działa.');
+                }
             }
+        }
+
+        // Funkcja do aktualizacji czasu ostatniego odświeżenia
+        function updateLastRefreshTime() {
+            const now = new Date();
+            const timeString = now.toLocaleTimeString();
+            lastRefreshTime.textContent = `Ostatnie odświeżenie: ${timeString}`;
+        }
+
+        // Funkcja do aktualizacji listy kategorii w filtrze
+        function updateCategoryFilter() {
+            // Zachowaj aktualnie wybraną wartość
+            const selectedValue = filterCategory.value;
+            
+            // Zbierz unikalne kategorie
+            const categories = [...new Set(inventory.map(item => item.category).filter(Boolean))];
+            
+            // Wyczyść select oprócz pierwszej opcji
+            while (filterCategory.options.length > 1) {
+                filterCategory.remove(1);
+            }
+            
+            // Dodaj kategorie do selecta
+            categories.forEach(category => {
+                const option = document.createElement('option');
+                option.value = category;
+                option.textContent = category;
+                filterCategory.appendChild(option);
+            });
+            
+            // Przywróć wybraną wartość, jeśli nadal jest dostępna
+            if (categories.includes(selectedValue)) {
+                filterCategory.value = selectedValue;
+            }
+        }
+
+        // Funkcja filtrująca i sortująca dane
+        function applyFiltersAndSort() {
+            // Najpierw filtruj
+            const searchTerm = searchInput.value.toLowerCase();
+            const categoryFilter = filterCategory.value;
+            
+            filteredInventory = inventory.filter(item => {
+                // Szukaj we wszystkich tekstowych polach
+                const matchesSearch = 
+                    (item.itemId && item.itemId.toLowerCase().includes(searchTerm)) ||
+                    (item.itemName && item.itemName.toLowerCase().includes(searchTerm)) ||
+                    (item.description && item.description.toLowerCase().includes(searchTerm)) ||
+                    (item.location && item.location.toLowerCase().includes(searchTerm)) ||
+                    (item.supplier && item.supplier.toLowerCase().includes(searchTerm));
+                
+                // Filtruj po kategorii
+                const matchesCategory = !categoryFilter || item.category === categoryFilter;
+                
+                return matchesSearch && matchesCategory;
+            });
+            
+            // Potem sortuj
+            filteredInventory.sort((a, b) => {
+                let aValue = a[sortConfig.field];
+                let bValue = b[sortConfig.field];
+                
+                // Obsługa wartości null/undefined
+                if (aValue === null || aValue === undefined) aValue = '';
+                if (bValue === null || bValue === undefined) bValue = '';
+                
+                // Konwertuj na liczby dla pól liczbowych
+                if (sortConfig.field === 'quantity' || sortConfig.field === 'reorderLevel') {
+                    aValue = Number(aValue) || 0;
+                    bValue = Number(bValue) || 0;
+                }
+                
+                // Porównanie w zależności od kierunku sortowania
+                if (sortConfig.direction === 'asc') {
+                    return aValue > bValue ? 1 : aValue < bValue ? -1 : 0;
+                } else {
+                    return aValue < bValue ? 1 : aValue > bValue ? -1 : 0;
+                }
+            });
         }
 
         // Funkcja do renderowania (wyświetlania) elementów w tabeli
         function renderInventory() {
             inventoryTableBody.innerHTML = ''; // Wyczyść tabelę przed ponownym renderowaniem
-            inventory.forEach((item, index) => {
+            
+            if (filteredInventory.length === 0) {
+                const row = inventoryTableBody.insertRow();
+                const cell = row.insertCell();
+                cell.colSpan = 5;
+                cell.className = "px-6 py-4 text-center text-gray-500";
+                cell.textContent = "Brak elementów do wyświetlenia";
+                return;
+            }
+            
+            filteredInventory.forEach((item) => {
                 const row = inventoryTableBody.insertRow();
                 row.innerHTML = `
                     <td class="px-6 py-4 whitespace-nowrap">${item.itemId}</td>
                     <td class="px-6 py-4 whitespace-nowrap">${item.itemName}</td>
                     <td class="px-6 py-4 whitespace-nowrap">${item.quantity} ${item.unit || ''}</td>
                     <td class="px-6 py-4 whitespace-nowrap">${item.location || ''}</td>
-                    <td class="px-6 py-4 whitespace-nowrap">
-                        <button onclick="printSingleLabel('${item.itemId}')" class="text-green-600 hover:text-green-900">Drukuj</button>
-                        <button onclick="showItemDetails('${item.itemId}')" class="text-blue-600 hover:text-blue-900 ml-2">Info</button>
-                        <button onclick="deleteItem('${item.itemId}')" class="text-red-600 hover:text-red-900 ml-2">Usuń</button>
+                    <td class="px-6 py-4 whitespace-nowrap flex flex-wrap gap-1">
+                        <button onclick="printSingleLabel('${item.itemId}')" class="text-green-600 hover:text-green-900 bg-green-100 hover:bg-green-200 px-2 py-1 rounded">
+                            Drukuj
+                        </button>
+                        <button onclick="showItemDetails('${item.itemId}')" class="text-blue-600 hover:text-blue-900 bg-blue-100 hover:bg-blue-200 px-2 py-1 rounded">
+                            Info
+                        </button>
+                        <button onclick="deleteItem('${item.itemId}')" class="text-red-600 hover:text-red-900 bg-red-100 hover:bg-red-200 px-2 py-1 rounded">
+                            Usuń
+                        </button>
                     </td>
                 `;
             });
         }
 
-        // Funkcja diagnostyczna - pokaż szczegóły elementu
-        function showItemDetails(itemId) {
-            const item = inventory.find(i => i.itemId === itemId);
-            if (!item) {
-                alert('Nie znaleziono elementu!');
+        // Funkcja do generowania unikalnego ID
+        function generateUniqueId() {
+            const date = new Date();
+            const year = date.getFullYear().toString().slice(-2);
+            const month = (date.getMonth() + 1).toString().padStart(2, '0');
+            const day = date.getDate().toString().padStart(2, '0');
+            const hours = date.getHours().toString().padStart(2, '0');
+            const minutes = date.getMinutes().toString().padStart(2, '0');
+            const seconds = date.getSeconds().toString().padStart(2, '0');
+            const random = Math.floor(Math.random() * 1000).toString().padStart(3, '0');
+            
+            return `${year}${month}${day}-${hours}${minutes}${seconds}-${random}`;
+        }
+
+        // Funkcja do eksportu danych do CSV
+        function exportToCSV() {
+            if (inventory.length === 0) {
+                alert('Brak danych do eksportu.');
                 return;
             }
             
-            console.log('Szczegóły elementu:', item);
+            // Definiuj nagłówki
+            const headers = [
+                'ID Elementu', 'Nazwa Elementu', 'Opis', 'Kategoria', 
+                'Ilość', 'Jednostka', 'Lokalizacja', 'Dostawca', 
+                'Poziom Zamówienia', 'Ostatnia Aktualizacja'
+            ];
             
-            // Utwórz czytelny tekst ze wszystkimi właściwościami
-            let details = 'Szczegóły elementu:\n\n';
-            for (const [key, value] of Object.entries(item)) {
-                details += `${key}: ${value}\n`;
+            // Mapuj dane
+            const csvData = inventory.map(item => [
+                item.itemId || '',
+                item.itemName || '',
+                item.description || '',
+                item.category || '',
+                item.quantity || 0,
+                item.unit || '',
+                item.location || '',
+                item.supplier || '',
+                item.reorderLevel || 0,
+                item.lastUpdated ? new Date(item.lastUpdated).toLocaleDateString() : ''
+            ]);
+            
+            // Dodaj nagłówki na początku
+            csvData.unshift(headers);
+            
+            // Konwertuj na format CSV
+            let csvString = '';
+            csvData.forEach(row => {
+                const processedRow = row.map(field => {
+                    // Jeśli pole zawiera przecinki, cudzysłowy lub nowe linie, umieść je w cudzysłowach
+                    if (typeof field === 'string' && (field.includes(',') || field.includes('"') || field.includes('\n'))) {
+                        return `"${field.replace(/"/g, '""')}"`;
+                    }
+                    return field;
+                });
+                csvString += processedRow.join(',') + '\n';
+            });
+            
+            // Utwórz Blob i link do pobrania
+            const blob = new Blob([csvString], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement('a');
+            const url = URL.createObjectURL(blob);
+            
+            link.setAttribute('href', url);
+            link.setAttribute('download', `inventario_${new Date().toISOString().slice(0, 10)}.csv`);
+            link.style.display = 'none';
+            
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+
+        // Funkcja do aktualizacji ilości produktu metodą "usuń i dodaj"
+        async function updateQuantity(itemId, newQuantity) {
+            try {
+                // Znajdź aktualne dane produktu
+                const item = inventory.find(item => item.itemId === itemId);
+                if (!item) {
+                    throw new Error('Nie znaleziono produktu o podanym ID');
+                }
+                
+                console.log('Aktualizacja produktu:', itemId, 'Nowa ilość:', newQuantity);
+                
+                // Tworzymy kopię obiektu z nową ilością
+                const updatedItem = {
+                    ...item,
+                    quantity: newQuantity,
+                    lastUpdated: new Date().toISOString().slice(0, 10)
+                };
+                
+                // Usuwanie nie może zawierać _id, więc usuwamy używając itemId
+                console.log('Krok 1: Usuwanie istniejącego elementu');
+                const deleteResponse = await fetch(`${API_URL}/${itemId}`, {
+                    method: 'DELETE'
+                });
+                
+                if (!deleteResponse.ok) {
+                    console.error('Błąd podczas usuwania:', await deleteResponse.text());
+                    throw new Error(`Nie można usunąć elementu. Status: ${deleteResponse.status}`);
+                }
+                
+                console.log('Krok 2: Dodawanie zaktualizowanego elementu');
+                // Usuwamy pole _id przed dodaniem - MongoDB wygeneruje nowe
+                delete updatedItem._id;
+                
+                const addResponse = await fetch(API_URL, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(updatedItem)
+                });
+                
+                if (!addResponse.ok) {
+                    console.error('Błąd podczas dodawania:', await addResponse.text());
+                    throw new Error(`Nie można dodać zaktualizowanego elementu. Status: ${addResponse.status}`);
+                }
+                
+                console.log('Aktualizacja zakończona sukcesem!');
+                await fetchInventory(); // Odśwież dane po aktualizacji
+                return true;
+            } catch (error) {
+                console.error('Błąd podczas aktualizacji ilości:', error);
+                alert(`Nie udało się zaktualizować ilości: ${error.message}`);
+                return false;
             }
-            
-            alert(details);
         }
 
         // Funkcja do dodawania nowego elementu
@@ -408,59 +755,87 @@
             }
         }
 
-        // Funkcja do aktualizacji ilości produktu metodą "usuń i dodaj"
-        async function updateQuantity(itemId, newQuantity) {
-            try {
-                // Znajdź aktualne dane produktu
-                const item = inventory.find(item => item.itemId === itemId);
-                if (!item) {
-                    throw new Error('Nie znaleziono produktu o podanym ID');
-                }
-                
-                console.log('Aktualizacja produktu:', itemId, 'Nowa ilość:', newQuantity);
-                
-                // Tworzymy kopię obiektu z nową ilością
-                const updatedItem = {
-                    ...item,
-                    quantity: newQuantity,
-                    lastUpdated: new Date().toISOString().slice(0, 10)
-                };
-                
-                // Usuwanie nie może zawierać _id, więc usuwamy używając itemId
-                console.log('Krok 1: Usuwanie istniejącego elementu');
-                const deleteResponse = await fetch(`${API_URL}/${itemId}`, {
-                    method: 'DELETE'
-                });
-                
-                if (!deleteResponse.ok) {
-                    console.error('Błąd podczas usuwania:', await deleteResponse.text());
-                    throw new Error(`Nie można usunąć elementu. Status: ${deleteResponse.status}`);
-                }
-                
-                console.log('Krok 2: Dodawanie zaktualizowanego elementu');
-                // Usuwamy pole _id przed dodaniem - MongoDB wygeneruje nowe
-                delete updatedItem._id;
-                
-                const addResponse = await fetch(API_URL, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify(updatedItem)
-                });
-                
-                if (!addResponse.ok) {
-                    console.error('Błąd podczas dodawania:', await addResponse.text());
-                    throw new Error(`Nie można dodać zaktualizowanego elementu. Status: ${addResponse.status}`);
-                }
-                
-                console.log('Aktualizacja zakończona sukcesem!');
-                await fetchInventory(); // Odśwież dane po aktualizacji
-                return true;
-            } catch (error) {
-                console.error('Błąd podczas aktualizacji ilości:', error);
-                alert(`Nie udało się zaktualizować ilości: ${error.message}`);
-                return false;
+        // Funkcja wyświetlająca szczegóły elementu
+        function showItemDetails(itemId) {
+            const item = inventory.find(i => i.itemId === itemId);
+            if (!item) {
+                alert('Nie znaleziono elementu!');
+                return;
+            }
+            
+            // Tworzymy HTML z informacjami
+            let detailsHTML = `
+                <div class="bg-white p-4 rounded-lg shadow-lg">
+                    <h2 class="text-xl font-bold mb-4">${item.itemName}</h2>
+                    <table class="w-full">
+                        <tr class="border-b">
+                            <th class="text-left py-2 pr-4">ID:</th>
+                            <td>${item.itemId}</td>
+                        </tr>
+            `;
+            
+            if (item._id) {
+                detailsHTML += `
+                    <tr class="border-b">
+                        <th class="text-left py-2 pr-4">MongoDB ID:</th>
+                        <td>${item._id}</td>
+                    </tr>
+                `;
+            }
+            
+            detailsHTML += `
+                <tr class="border-b">
+                    <th class="text-left py-2 pr-4">Opis:</th>
+                    <td>${item.description || '-'}</td>
+                </tr>
+                <tr class="border-b">
+                    <th class="text-left py-2 pr-4">Kategoria:</th>
+                    <td>${item.category || '-'}</td>
+                </tr>
+                <tr class="border-b">
+                    <th class="text-left py-2 pr-4">Ilość:</th>
+                    <td>${item.quantity} ${item.unit || ''}</td>
+                </tr>
+                <tr class="border-b">
+                    <th class="text-left py-2 pr-4">Lokalizacja:</th>
+                    <td>${item.location || '-'}</td>
+                </tr>
+                <tr class="border-b">
+                    <th class="text-left py-2 pr-4">Dostawca:</th>
+                    <td>${item.supplier || '-'}</td>
+                </tr>
+                <tr class="border-b">
+                    <th class="text-left py-2 pr-4">Poziom zamówienia:</th>
+                    <td>${item.reorderLevel || 0}</td>
+                </tr>
+                <tr>
+                    <th class="text-left py-2 pr-4">Ostatnia aktualizacja:</th>
+                    <td>${item.lastUpdated ? new Date(item.lastUpdated).toLocaleDateString() : '-'}</td>
+                </tr>
+            </table>
+            </div>`;
+            
+            // Wyświetl w modalu lub w alercie
+            if (window.innerWidth <= 768) {
+                // Na urządzeniach mobilnych używamy modalu
+                labelPreviewContainer.innerHTML = detailsHTML;
+                labelPreviewModal.style.display = 'block';
+            } else {
+                // Na większych ekranach możemy użyć alertu
+                const detailsWindow = window.open('', '_blank', 'width=600,height=400');
+                detailsWindow.document.write(`
+                    <!DOCTYPE html>
+                    <html>
+                    <head>
+                        <title>Szczegóły elementu: ${item.itemName}</title>
+                        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                        <script src="https://cdn.tailwindcss.com"></script>
+                    </head>
+                    <body class="p-4">
+                        ${detailsHTML}
+                    </body>
+                    </html>
+                `);
             }
         }
 
@@ -511,10 +886,21 @@
                 correctLevel: QRCode.CorrectLevel.H
             });
             
-            // Daj przeglądarce czas na wyrenderowanie kodu QR przed drukowaniem
-            setTimeout(() => {
-                window.print();
-            }, 200);
+            // Na urządzeniach mobilnych pokazujemy podgląd zamiast drukowania
+            if (window.innerWidth <= 768 || /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)) {
+                // Klonuj etykietę do podglądu
+                labelPreviewContainer.innerHTML = '';
+                const labelClone = labelDiv.cloneNode(true);
+                labelPreviewContainer.appendChild(labelClone);
+                
+                // Pokaż modal z podglądem
+                labelPreviewModal.style.display = 'block';
+            } else {
+                // Na desktopie drukujemy normalnie
+                setTimeout(() => {
+                    window.print();
+                }, 200);
+            }
         }
 
         // Funkcja do generowania i drukowania wszystkich etykiet
@@ -526,8 +912,8 @@
                 return;
             }
 
-            // Generuj etykiety dla każdego elementu
-            inventory.forEach(item => {
+            // Używamy przefiltrowanej listy, aby drukować tylko widoczne elementy
+            filteredInventory.forEach(item => {
                 const labelDiv = document.createElement('div');
                 labelDiv.classList.add('label-item');
                 
@@ -566,10 +952,31 @@
                 });
             });
             
-            // Daj przeglądarce czas na wyrenderowanie wszystkich kodów QR przed drukowaniem
-            setTimeout(() => {
-                window.print();
-            }, 500);
+            // Na urządzeniach mobilnych pokazujemy podgląd zamiast drukowania
+            if (window.innerWidth <= 768 || /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)) {
+                // Przenosimy tylko pierwszą etykietę do podglądu
+                if (printContainer.children.length > 0) {
+                    labelPreviewContainer.innerHTML = '';
+                    const labelClone = printContainer.children[0].cloneNode(true);
+                    labelPreviewContainer.appendChild(labelClone);
+                    
+                    const totalCount = printContainer.children.length;
+                    if (totalCount > 1) {
+                        const infoText = document.createElement('p');
+                        infoText.className = 'mt-4 text-center text-gray-600';
+                        infoText.textContent = `Oraz ${totalCount - 1} innych etykiet. Użyj komputera, aby wydrukować wszystkie jednocześnie.`;
+                        labelPreviewContainer.appendChild(infoText);
+                    }
+                    
+                    // Pokaż modal z podglądem
+                    labelPreviewModal.style.display = 'block';
+                }
+            } else {
+                // Na desktopie drukujemy normalnie
+                setTimeout(() => {
+                    window.print();
+                }, 500);
+            }
         });
 
         // Inicjalizacja skanera QR
@@ -634,6 +1041,35 @@
             console.log('Skanowanie w toku...');
         }
 
+        // Obsługa sortowania tabeli
+        document.querySelectorAll('th[data-sort]').forEach(th => {
+            th.addEventListener('click', () => {
+                const field = th.getAttribute('data-sort');
+                
+                // Zmień kierunek sortowania jeśli kliknięto tę samą kolumnę
+                if (sortConfig.field === field) {
+                    sortConfig.direction = sortConfig.direction === 'asc' ? 'desc' : 'asc';
+                } else {
+                    sortConfig.field = field;
+                    sortConfig.direction = 'asc';
+                }
+                
+                // Usuń klasy sortowania ze wszystkich nagłówków
+                document.querySelectorAll('th[data-sort]').forEach(header => {
+                    header.classList.remove('sort-asc', 'sort-desc');
+                    header.classList.add('sort-icon');
+                });
+                
+                // Dodaj klasę sortowania do aktualnego nagłówka
+                th.classList.remove('sort-icon');
+                th.classList.add(sortConfig.direction === 'asc' ? 'sort-asc' : 'sort-desc');
+                
+                // Zastosuj sortowanie i przerenderuj tabelę
+                applyFiltersAndSort();
+                renderInventory();
+            });
+        });
+
         // Obsługa przycisku "Skanuj Kod QR"
         scanQrBtn.addEventListener('click', function() {
             // Upewnij się, że skaner jest zresetowany
@@ -651,18 +1087,29 @@
             }, 100); // Małe opóźnienie dla lepszej kompatybilności z przeglądarkami
         });
         
-        // Zamknięcie modalu
-        closeModal.addEventListener('click', function() {
-            scannerModal.style.display = 'none';
-            stopQrScanner();
+        // Zamknięcie modali
+        closeModal.forEach(btn => {
+            btn.addEventListener('click', function() {
+                scannerModal.style.display = 'none';
+                labelPreviewModal.style.display = 'none';
+                stopQrScanner();
+            });
         });
         
-        // Zamknięcie modalu po kliknięciu poza obszarem modalu
+        // Zamknięcie modali po kliknięciu poza obszarem modalu
         window.addEventListener('click', function(event) {
             if (event.target === scannerModal) {
                 scannerModal.style.display = 'none';
                 stopQrScanner();
             }
+            if (event.target === labelPreviewModal) {
+                labelPreviewModal.style.display = 'none';
+            }
+        });
+        
+        // Przycisk zamknięcia podglądu etykiety
+        closePreviewBtn.addEventListener('click', function() {
+            labelPreviewModal.style.display = 'none';
         });
         
         // Przyciski dodawania/odejmowania ilości
@@ -702,16 +1149,61 @@
                 newQuantity = Math.max(0, scannedItem.quantity - changeValue);
             }
             
-            const success = await updateQuantity(scannedItem.itemId, newQuantity);
-            if (success) {
-                alert(`Stan magazynowy produktu "${scannedItem.itemName}" został zaktualizowany.`);
-                scannerModal.style.display = 'none';
-                stopQrScanner();
+            try {
+                const success = await updateQuantity(scannedItem.itemId, newQuantity);
+                if (success) {
+                    alert(`Stan magazynowy produktu "${scannedItem.itemName}" został zaktualizowany.`);
+                    scannerModal.style.display = 'none';
+                    stopQrScanner();
+                } else {
+                    // Jeśli aktualizacja online nie powiodła się, zapytaj o tryb offline
+                    if (confirm(`Nie można zaktualizować stanu magazynowego online. Czy chcesz zapisać zmiany lokalnie?`)) {
+                        // Zaktualizuj lokalnie
+                        const itemIndex = inventory.findIndex(i => i.itemId === scannedItem.itemId);
+                        if (itemIndex !== -1) {
+                            inventory[itemIndex].quantity = newQuantity;
+                            inventory[itemIndex].lastUpdated = new Date().toISOString().slice(0, 10);
+                            inventory[itemIndex]._locallyUpdated = true;
+                            renderInventory();
+                            
+                            alert(`Stan magazynowy produktu "${scannedItem.itemName}" został zaktualizowany lokalnie.`);
+                            scannerModal.style.display = 'none';
+                            stopQrScanner();
+                        }
+                    }
+                }
+            } catch (error) {
+                alert(`Wystąpił błąd: ${error.message}`);
             }
+        });
+
+        // Obsługa filtrowania
+        searchInput.addEventListener('input', () => {
+            applyFiltersAndSort();
+            renderInventory();
+        });
+        
+        filterCategory.addEventListener('change', () => {
+            applyFiltersAndSort();
+            renderInventory();
+        });
+        
+        // Przycisk eksportu CSV
+        exportCsvBtn.addEventListener('click', exportToCSV);
+        
+        // Przycisk ręcznego odświeżenia
+        refreshBtn.addEventListener('click', fetchInventory);
+        
+        // Przycisk generowania ID
+        generateIdBtn.addEventListener('click', function() {
+            document.getElementById('itemId').value = generateUniqueId();
         });
 
         // Inicjalizacja: pobierz dane z serwera przy starcie aplikacji
         fetchInventory();
+        
+        // Ustaw automatyczne odświeżanie co 10 sekund
+        refreshInterval = setInterval(fetchInventory, 10000);
     </script>
 </body>
 </html>
