@@ -45,24 +45,24 @@
         /* Kontener na etykiety do druku (domyślnie poza ekranem) */
         .print-container {
             position: absolute;
-            left: -9999px; /* Przesuń poza widoczny obszar ekranu */
+            left: -9999px;
             top: 0;
-            width: 100%; /* Upewnij się, że ma szerokość */
-            height: auto; /* Upewnij się, że ma wysokość */
-            overflow: hidden; /* Aby nie wpływał na scrollowanie strony */
-            z-index: -1; /* Umieść pod innymi elementami */
+            width: 100%;
+            height: auto;
+            overflow: hidden;
+            z-index: -1;
         }
 
         /* Styl dla wydruku etykiet */
         @media print {
             body > *:not(.print-container) {
-                display: none; /* Ukryj wszystko poza kontenerem do druku */
+                display: none;
             }
             .print-container {
-                position: static; /* Przywróć normalne pozycjonowanie dla druku */
+                position: static;
                 left: auto;
                 top: auto;
-                display: block; /* Upewnij się, że jest widoczny podczas druku */
+                display: block;
                 width: 100%;
                 margin: 0;
                 padding: 0;
@@ -70,20 +70,20 @@
             }
             .label-item {
                 display: inline-block;
-                width: 9cm; /* Szerokość etykiety, np. 9cm */
-                height: 5cm; /* Wysokość etykiety, np. 5cm */
+                width: 9cm;
+                height: 5cm;
                 border: 1px solid #ccc;
                 margin: 0.5cm;
                 padding: 0.5cm;
                 box-sizing: border-box;
                 text-align: center;
-                page-break-inside: avoid; /* Zapobiega łamaniu etykiety na dwie strony */
+                page-break-inside: avoid;
             }
-            .label-item img { /* Zmieniono z canvas na img */
+            .label-item img {
                 width: 4cm !important;
                 height: 4cm !important;
                 margin: 0 auto;
-                display: block; /* Upewnij się, że obraz jest blokowy dla centrowania */
+                display: block;
             }
             .label-item h3 {
                 font-size: 14px;
