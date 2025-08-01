@@ -197,47 +197,18 @@
 
         let inventory = []; // Tablica do przechowywania elementów magazynowych
 
-        // Funkcja diagnostyczna
-        async function testConnection() {
-            try {
-                console.log("Testowanie połączenia z API...");
-                const response = await fetch(API_URL, {
-                    method: 'GET',
-                    mode: 'cors', // Wymusza użycie CORS
-                    headers: {
-                        'Accept': 'application/json'
-                    }
-                });
-                console.log("Status odpowiedzi:", response.status);
-                if (!response.ok) {
-                    throw new Error(`HTTP error! Status: ${response.status}`);
-                }
-                const data = await response.json();
-                console.log("Pobrane dane:", data);
-                return true;
-            } catch (error) {
-                console.error("Błąd połączenia:", error);
-                return false;
-            }
-        }
-        
-        // Testuj połączenie przy starcie
-        testConnection().then(success => {
-            if (success) {
-                console.log("Połączenie z API działa prawidłowo!");
-            } else {
-                console.error("Nie można połączyć się z API. Sprawdź konsolę.");
-            }
-        });
-
         // Funkcja do pobierania danych z serwera
         async function fetchInventory() {
+            // Logowanie adresu URL, do którego strona próbuje się połączyć
+            console.log(`Próba połączenia z serwerem pod adresem: ${API_URL}`);
             try {
                 const response = await fetch(API_URL);
+                console.log('Otrzymano odpowiedź od serwera:', response);
                 if (!response.ok) {
                     throw new Error(`Błąd HTTP! Status: ${response.status}`);
                 }
                 inventory = await response.json();
+                console.log('Pobrano dane z serwera:', inventory);
                 renderInventory(); // Odśwież tabelę po pobraniu danych
             } catch (error) {
                 console.error('Błąd podczas pobierania danych z serwera:', error);
@@ -279,6 +250,7 @@
                 lastUpdated: new Date().toISOString().slice(0, 10) // Aktualna data w formacie YYYY-MM-DD
             };
 
+            console.log('Wysyłanie nowego elementu:', newItem);
             try {
                 const response = await fetch(API_URL, {
                     method: 'POST', // Metoda HTTP POST do dodawania danych
@@ -287,6 +259,8 @@
                     },
                     body: JSON.stringify(newItem) // Konwertuje obiekt JS na ciąg JSON
                 });
+
+                console.log('Otrzymano odpowiedź od serwera po dodaniu:', response);
 
                 if (!response.ok) {
                     const errorData = await response.json();
@@ -305,10 +279,13 @@
         // Funkcja do usuwania elementu
         async function deleteItem(itemId) {
             if (confirm(`Czy na pewno chcesz usunąć element o ID: ${itemId}?`)) {
+                console.log(`Próba usunięcia elementu o ID: ${itemId}`);
                 try {
                     const response = await fetch(`${API_URL}/${itemId}`, {
                         method: 'DELETE' // Metoda HTTP DELETE do usuwania danych
                     });
+
+                    console.log('Otrzymano odpowiedź od serwera po usunięciu:', response);
 
                     if (!response.ok) {
                         const errorData = await response.json();
