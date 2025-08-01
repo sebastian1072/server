@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Aplikacja Magazynu Produkcyjnego</title>
-        <script src="https://cdn.tailwindcss.com"></script>
+        <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
         <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.1.1/css/all.min.css">
         <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -12,60 +12,53 @@
     <style>
         body {
             font-family: 'Inter', sans-serif;
-            background-color: #f3f4f6;
-            color: #374151;
+            background-color: #f8f9fa; /* Zmiana: Lżejsze tło */
+            color: #343a40;
         }
-        table {
-            width: 100%;
-            border-collapse: separate;
-            border-spacing: 0;
-            overflow: hidden;
+        .container-app {
+            max-width: 1200px; /* Zmiana: Ograniczenie szerokości na dużych ekranach */
+            margin-top: 2rem;
+            margin-bottom: 2rem;
+            padding: 0;
+        }
+        .card {
             border-radius: 0.75rem;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
         }
-        th, td {
-            padding: 1rem 1.5rem;
-            text-align: left;
-            border-bottom: 1px solid #e5e7eb;
-        }
-        @media (max-width: 768px) {
-            th:nth-child(2), td:nth-child(2), th:nth-child(4), td:nth-child(4) {
-                display: none;
-            }
-            th, td {
-                padding: 0.75rem 1rem;
-            }
-        }
-        th {
+        .card-header-custom {
             background-color: #4f46e5;
             color: white;
-            font-weight: 600;
-            text-transform: uppercase;
-            letter-spacing: 0.05em;
+            font-weight: bold;
+            border-top-left-radius: 0.75rem !important;
+            border-top-right-radius: 0.75rem !important;
+        }
+        .form-label {
+            font-weight: 500;
+        }
+        .table-responsive {
+            border-radius: 0.75rem;
+            overflow: hidden;
+        }
+        .table th {
             cursor: pointer;
+            user-select: none;
         }
-        th.sortable:after {
-            content: '';
-            display: inline-block;
+        .table th.sortable:after {
+            content: '\f0dc';
+            font-family: 'Font Awesome 6 Free';
+            font-weight: 900;
             margin-left: 0.5rem;
-            width: 0;
-            height: 0;
-            border-left: 5px solid transparent;
-            border-right: 5px solid transparent;
-            vertical-align: middle;
+            color: rgba(255, 255, 255, 0.5);
         }
-        th.asc:after { border-bottom: 5px solid white; }
-        th.desc:after { border-top: 5px solid white; }
-        tr:nth-child(even) {
-            background-color: #f9fafb;
+        .table th.asc:after { content: '\f0d8'; color: white; }
+        .table th.desc:after { content: '\f0d7'; color: white; }
+        
+        /* Ukrywanie kolumn na małych ekranach */
+        @media (max-width: 768px) {
+            .d-none-sm { display: none; }
         }
-        tr:hover {
-            background-color: #eef2ff;
-        }
-        th:first-child { border-top-left-radius: 0.75rem; }
-        th:last-child { border-top-right-radius: 0.75rem; }
-        tr:last-child td:first-child { border-bottom-left-radius: 0.75rem; }
-        tr:last-child td:last-child { border-bottom-right-radius: 0.75rem; }
-    
+
+        /* Stylowanie wydruku */
         .print-container {
             position: absolute;
             left: -9999px;
@@ -75,221 +68,146 @@
             overflow: hidden;
             z-index: -1;
         }
-    
         @media print {
-            body > *:not(.print-container) {
-                display: none;
-            }
-            .print-container {
-                position: static;
-                left: auto;
-                top: auto;
-                display: flex;
-                flex-wrap: wrap;
-                align-content: flex-start;
-                width: 100%;
-                margin: 0;
-                padding: 0;
-                z-index: auto;
+            body > *:not(.print-container) { display: none; }
+            .print-container { 
+                position: static; left: auto; top: auto;
+                display: flex; flex-wrap: wrap; align-content: flex-start;
+                width: 100%; margin: 0; padding: 0; z-index: auto;
             }
             .label-item {
-                display: inline-block;
-                width: 9cm;
-                height: 5cm;
-                border: 1px solid #333;
-                margin: 0.5cm;
-                padding: 0.5cm;
-                box-sizing: border-box;
-                text-align: center;
-                page-break-inside: avoid;
-                overflow: hidden;
+                display: inline-block; width: 9cm; height: 5cm; border: 1px solid #333;
+                margin: 0.5cm; padding: 0.5cm; box-sizing: border-box; text-align: center;
+                page-break-inside: avoid; overflow: hidden;
             }
-            .label-item .qr-code {
-                width: 3.5cm !important;
-                height: 3.5cm !important;
-                margin: 0 auto;
-                display: block;
-            }
-            .label-item h3 {
-                font-size: 14px;
-                font-weight: bold;
-                margin: 5px 0;
-            }
-            .label-item p {
-                font-size: 12px;
-                margin: 2px 0;
-            }
+            .label-item .qr-code { width: 3.5cm !important; height: 3.5cm !important; margin: 0 auto; display: block; }
+            .label-item h3 { font-size: 14px; font-weight: bold; margin: 5px 0; }
+            .label-item p { font-size: 12px; margin: 2px 0; }
         }
-    
-        .modal {
-            display: none;
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background-color: rgba(0,0,0,0.7);
-            z-index: 1000;
-            overflow: auto;
-            display: flex; /* Zmiana: użyj flexbox do centrowania modalu */
-            justify-content: center;
-            align-items: center;
-        }
-        
-        .modal-content {
-            background-color: white;
-            margin: 0;
-            padding: 20px;
-            border-radius: 8px;
-            width: 90%;
-            max-width: 500px;
-        }
-        
-        .close {
-            float: right;
-            font-size: 28px;
-            font-weight: bold;
-            cursor: pointer;
-            line-height: 1; /* Poprawka: poprawia wyrównanie ikony zamknięcia */
-        }
-        
-        #scanner-container {
-            width: 100%;
-            height: 300px;
-            margin: 0 auto;
-            overflow: hidden;
-            position: relative;
-        }
-        
-        #scanner-container video {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-        }
-        
-        .inventory-update {
-            margin-top: 20px;
-            padding: 15px;
-            border: 1px solid #e5e7eb;
-            border-radius: 8px;
-            background-color: #f9fafb;
-        }
+
+        /* Stylowanie modalu skanera */
+        .modal { display: none; background-color: rgba(0,0,0,0.7); }
+        .modal-content-custom { max-width: 500px; }
+        #scanner-container { width: 100%; height: 300px; overflow: hidden; position: relative; }
+        #scanner-container video { width: 100%; height: 100%; object-fit: cover; }
     </style>
 </head>
-<body class="p-4 md:p-8">
-    <div class="container mx-auto bg-white shadow-lg rounded-xl overflow-hidden mb-8">
-        <h1 class="text-2xl md:text-3xl font-bold text-center py-4 md:py-6 bg-indigo-600 text-white rounded-t-xl">
-            Aplikacja Magazynu Produkcyjnego
-        </h1>
-        <div class="p-4 md:p-6">
-            <h2 class="text-xl md:text-2xl font-semibold mb-4 text-indigo-700">Dodaj Nowy Element</h2>
-            <form id="addItemForm" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-x-12 gap-y-6 mb-8 p-6 border rounded-lg bg-gray-50">
-                <div class="flex flex-col">
-                    <label for="itemId" class="block text-sm font-medium text-gray-700 mb-1">ID Elementu:</label>
-                    <input type="text" id="itemId" name="itemId" required class="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm p-2" readonly>
-                </div>
-                <div class="flex flex-col">
-                    <label for="itemName" class="block text-sm font-medium text-gray-700 mb-1">Nazwa Elementu:</label>
-                    <input type="text" id="itemName" name="itemName" required class="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm p-2">
-                </div>
-                <div class="flex flex-col">
-                    <label for="description" class="block text-sm font-medium text-gray-700 mb-1">Opis:</label>
-                    <input type="text" id="description" name="description" class="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm p-2">
-                </div>
-                <div class="flex flex-col">
-                    <label for="category" class="block text-sm font-medium text-gray-700 mb-1">Kategoria:</label>
-                    <input type="text" id="category" name="category" class="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm p-2">
-                </div>
-                <div class="flex flex-col">
-                    <label for="quantity" class="block text-sm font-medium text-gray-700 mb-1">Ilość:</label>
-                    <input type="number" id="quantity" name="quantity" required min="0" class="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm p-2">
-                </div>
-                <div class="flex flex-col">
-                    <label for="unit" class="block text-sm font-medium text-gray-700 mb-1">Jednostka:</label>
-                    <input type="text" id="unit" name="unit" class="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm p-2">
-                </div>
-                <div class="flex flex-col">
-                    <label for="location" class="block text-sm font-medium text-gray-700 mb-1">Lokalizacja:</label>
-                    <input type="text" id="location" name="location" class="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm p-2">
-                </div>
-                <div class="flex flex-col">
-                    <label for="supplier" class="block text-sm font-medium text-gray-700 mb-1">Dostawca:</label>
-                    <input type="text" id="supplier" name="supplier" class="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm p-2">
-                </div>
-                <div class="flex flex-col">
-                    <label for="reorderLevel" class="block text-sm font-medium text-gray-700 mb-1">Poziom Zamówienia:</label>
-                    <input type="number" id="reorderLevel" name="reorderLevel" min="0" class="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm p-2">
-                </div>
-                <div class="md:col-span-2 flex justify-end items-end">
-                    <button type="submit" class="inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 w-full md:w-auto">
-                        Dodaj Element
-                    </button>
-                </div>
-            </form>
-            <h2 class="text-xl md:text-2xl font-semibold mb-4 text-indigo-700">Lista Elementów</h2>
-            <div class="flex flex-wrap gap-2 mb-4">
-                <button id="printLabelsBtn" class="inline-flex items-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500">
-                    <i class="fa-solid fa-print mr-2"></i>Drukuj Etykiety
-                </button>
-                <button id="scanQrBtn" class="inline-flex items-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
-                    <i class="fa-solid fa-qrcode mr-2"></i>Skanuj Kod QR
-                </button>
-                <button id="exportCsvBtn" class="inline-flex items-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-purple-600 hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500">
-                    <i class="fa-solid fa-file-csv mr-2"></i>Eksportuj do CSV
-                </button>
+<body>
+    <div class="container container-app">
+        <div class="card mb-4">
+            <div class="card-header card-header-custom text-center py-3">
+                <h1 class="h4 mb-0">Aplikacja Magazynu Produkcyjnego</h1>
             </div>
-            <div class="overflow-x-auto">
-                <table class="min-w-full divide-y divide-gray-200">
-                    <thead>
-                        <tr>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider sortable" data-sort="itemId">
-                                ID Elementu
-                            </th>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider sortable" data-sort="itemName">
-                                Nazwa Elementu
-                            </th>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider sortable" data-sort="quantity">
-                                Ilość
-                            </th>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider sortable" data-sort="location">
-                                Lokalizacja
-                            </th>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider">
-                                Akcje
-                            </th>
-                        </tr>
-                    </thead>
-                    <tbody id="inventoryTableBody" class="bg-white divide-y divide-gray-200">
-                                            </tbody>
-                </table>
+            <div class="card-body">
+                <h2 class="h5 text-indigo mb-4">Dodaj Nowy Element</h2>
+                <form id="addItemForm" class="row g-3 p-3 bg-light rounded-3">
+                    <div class="col-md-6">
+                        <label for="itemId" class="form-label">ID Elementu:</label>
+                        <input type="text" id="itemId" name="itemId" class="form-control" readonly required>
+                    </div>
+                    <div class="col-md-6">
+                        <label for="itemName" class="form-label">Nazwa Elementu:</label>
+                        <input type="text" id="itemName" name="itemName" class="form-control" required>
+                    </div>
+                    <div class="col-md-6">
+                        <label for="description" class="form-label">Opis:</label>
+                        <input type="text" id="description" name="description" class="form-control">
+                    </div>
+                    <div class="col-md-6">
+                        <label for="category" class="form-label">Kategoria:</label>
+                        <input type="text" id="category" name="category" class="form-control">
+                    </div>
+                    <div class="col-md-6">
+                        <label for="quantity" class="form-label">Ilość:</label>
+                        <input type="number" id="quantity" name="quantity" class="form-control" required min="0">
+                    </div>
+                    <div class="col-md-6">
+                        <label for="unit" class="form-label">Jednostka:</label>
+                        <input type="text" id="unit" name="unit" class="form-control">
+                    </div>
+                    <div class="col-md-6">
+                        <label for="location" class="form-label">Lokalizacja:</label>
+                        <input type="text" id="location" name="location" class="form-control">
+                    </div>
+                    <div class="col-md-6">
+                        <label for="supplier" class="form-label">Dostawca:</label>
+                        <input type="text" id="supplier" name="supplier" class="form-control">
+                    </div>
+                    <div class="col-md-6">
+                        <label for="reorderLevel" class="form-label">Poziom Zamówienia:</label>
+                        <input type="number" id="reorderLevel" name="reorderLevel" min="0" class="form-control">
+                    </div>
+                    <div class="col-12 text-end">
+                        <button type="submit" class="btn btn-primary">Dodaj Element</button>
+                    </div>
+                </form>
             </div>
         </div>
-    </div>
-    <div id="printContainer" class="print-container"></div>
-    <div id="scannerModal" class="modal hidden">
-        <div class="modal-content">
-            <span class="close">&times;</span>
-            <h2 class="text-xl font-semibold mb-4">Skanowanie Kodu QR</h2>
-            <div id="scanner-container">
-                <video id="scanner-video"></video>
+
+        <div class="card">
+            <div class="card-header card-header-custom text-center py-3">
+                <h2 class="h5 mb-0">Lista Elementów</h2>
             </div>
-            <div id="scan-result" class="inventory-update hidden">
-                <h3 id="scanned-item-name" class="font-bold mb-2">Nazwa przedmiotu</h3>
-                <p id="scanned-item-id"></p>
-                <p id="scanned-item-quantity" class="mb-3">Aktualna ilość: <span></span></p>
-                
-                <div class="flex flex-col space-y-3">
-                    <div class="flex items-center">
-                        <input type="number" id="quantity-change" class="w-20 p-2 border rounded mr-2" min="1" value="1">
-                        <button id="add-quantity" class="bg-green-500 text-white px-3 py-1 rounded mr-2"><i class="fa-solid fa-plus"></i></button>
-                        <button id="subtract-quantity" class="bg-red-500 text-white px-3 py-1 rounded"><i class="fa-solid fa-minus"></i></button>
-                    </div>
-                    <button id="update-inventory" class="bg-blue-600 text-white px-4 py-2 rounded mt-2">Aktualizuj stan magazynowy</button>
+            <div class="card-body">
+                <div class="d-flex flex-wrap gap-2 mb-4">
+                    <button id="printLabelsBtn" class="btn btn-success d-flex align-items-center">
+                        <i class="fa-solid fa-print me-2"></i>Drukuj Etykiety
+                    </button>
+                    <button id="scanQrBtn" class="btn btn-primary d-flex align-items-center">
+                        <i class="fa-solid fa-qrcode me-2"></i>Skanuj Kod QR
+                    </button>
+                    <button id="exportCsvBtn" class="btn btn-secondary d-flex align-items-center">
+                        <i class="fa-solid fa-file-csv me-2"></i>Eksportuj do CSV
+                    </button>
+                </div>
+                <div class="table-responsive">
+                    <table class="table table-hover table-striped mb-0">
+                        <thead class="table-dark">
+                            <tr>
+                                <th scope="col" class="sortable" data-sort="itemId">ID Elementu</th>
+                                <th scope="col" class="sortable d-none d-md-table-cell" data-sort="itemName">Nazwa Elementu</th>
+                                <th scope="col" class="sortable" data-sort="quantity">Ilość</th>
+                                <th scope="col" class="sortable d-none d-md-table-cell" data-sort="location">Lokalizacja</th>
+                                <th scope="col">Akcje</th>
+                            </tr>
+                        </thead>
+                        <tbody id="inventoryTableBody">
+                                                    </tbody>
+                    </table>
                 </div>
             </div>
         </div>
     </div>
 
+        <div id="printContainer" class="print-container"></div>
+
+        <div class="modal fade" id="scannerModal" tabindex="-1" aria-labelledby="scannerModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered modal-content-custom">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="scannerModalLabel">Skanowanie Kodu QR</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div id="scanner-container"></div>
+                    <div id="scan-result" class="inventory-update border rounded p-3 mt-3 d-none">
+                        <h3 id="scanned-item-name" class="h6 fw-bold mb-2">Nazwa przedmiotu</h3>
+                        <p id="scanned-item-id" class="small mb-1"></p>
+                        <p class="mb-3">Aktualna ilość: <span id="scanned-item-quantity"></span></p>
+                        
+                        <div class="d-flex align-items-center mb-3">
+                            <input type="number" id="quantity-change" class="form-control form-control-sm me-2" min="1" value="1" style="width: 80px;">
+                            <button id="add-quantity" class="btn btn-success btn-sm me-2"><i class="fa-solid fa-plus"></i></button>
+                            <button id="subtract-quantity" class="btn btn-danger btn-sm"><i class="fa-solid fa-minus"></i></button>
+                        </div>
+                        <button id="update-inventory" class="btn btn-primary w-100">Aktualizuj stan magazynowy</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+        <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
     <script src="https://unpkg.com/html5-qrcode"></script>
 
@@ -301,24 +219,21 @@
         const printContainer = document.getElementById('printContainer');
         const scanQrBtn = document.getElementById('scanQrBtn');
         const exportCsvBtn = document.getElementById('exportCsvBtn');
-        const scannerModal = document.getElementById('scannerModal');
-        const closeModal = document.querySelector('.close');
+        const scannerModal = new bootstrap.Modal(document.getElementById('scannerModal'));
         const scanResult = document.getElementById('scan-result');
         const scannedItemName = document.getElementById('scanned-item-name');
         const scannedItemId = document.getElementById('scanned-item-id');
-        const scannedItemQuantity = document.getElementById('scanned-item-quantity').querySelector('span');
+        const scannedItemQuantity = document.getElementById('scanned-item-quantity');
         const quantityChange = document.getElementById('quantity-change');
         const addQuantityBtn = document.getElementById('add-quantity');
         const subtractQuantityBtn = document.getElementById('subtract-quantity');
         const updateInventoryBtn = document.getElementById('update-inventory');
 
         const API_URL = 'https://serwer.sebaruman.pl/api/inventory';
-
         let inventory = [];
         let scannedItem = null;
         let quantityOperation = 'add';
         let html5QrCode = null;
-        
         let sortColumn = 'itemId';
         let sortDirection = 'asc';
 
@@ -362,14 +277,14 @@
             inventory.forEach((item, index) => {
                 const row = inventoryTableBody.insertRow();
                 row.innerHTML = `
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${item.itemId}</td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${item.itemName}</td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${item.quantity} ${item.unit || ''}</td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${item.location || ''}</td>
-                    <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                        <button onclick="printSingleLabel('${item.itemId}')" class="text-green-600 hover:text-green-900 mx-1"><i class="fa-solid fa-print"></i></button>
-                        <button onclick="showItemDetails('${item.itemId}')" class="text-blue-600 hover:text-blue-900 mx-1"><i class="fa-solid fa-circle-info"></i></button>
-                        <button onclick="deleteItem('${item.itemId}')" class="text-red-600 hover:text-red-900 mx-1"><i class="fa-solid fa-trash"></i></button>
+                    <td>${item.itemId}</td>
+                    <td class="d-none d-md-table-cell">${item.itemName}</td>
+                    <td>${item.quantity} ${item.unit || ''}</td>
+                    <td class="d-none d-md-table-cell">${item.location || ''}</td>
+                    <td class="text-end">
+                        <button onclick="printSingleLabel('${item.itemId}')" class="btn btn-sm btn-success me-1"><i class="fa-solid fa-print"></i></button>
+                        <button onclick="showItemDetails('${item.itemId}')" class="btn btn-sm btn-info me-1"><i class="fa-solid fa-circle-info"></i></button>
+                        <button onclick="deleteItem('${item.itemId}')" class="btn btn-sm btn-danger"><i class="fa-solid fa-trash"></i></button>
                     </td>
                 `;
             });
@@ -455,8 +370,6 @@
                 if (!item) {
                     throw new Error('Nie znaleziono produktu o podanym ID');
                 }
-                
-                console.log('Aktualizacja produktu:', itemId, 'Nowa ilość:', newQuantity);
                 
                 const response = await fetch(`${API_URL}/${itemId}`, {
                     method: 'PUT',
@@ -617,7 +530,7 @@
                 scannedItemId.textContent = `ID: ${item.itemId}`;
                 scannedItemQuantity.textContent = `${item.quantity} ${item.unit || ''}`;
                 
-                scanResult.classList.remove('hidden');
+                scanResult.classList.remove('d-none');
             } else {
                 alert(`Nie znaleziono produktu o ID: ${decodedText}`);
             }
@@ -629,40 +542,29 @@
 
         scanQrBtn.addEventListener('click', function() {
             html5QrCode = null;
-            scannerModal.style.display = 'flex'; // Zmiana: Pokaż modal
-            scanResult.classList.add('hidden');
+            scannerModal.show();
+            scanResult.classList.add('d-none');
             
             setTimeout(() => {
                 initQrScanner();
             }, 100);
         });
-        
-        closeModal.addEventListener('click', function() {
-            scannerModal.style.display = 'none';
+
+        // Zmiana: Nasłuchujemy na zdarzenie 'hide.bs.modal' z Bootstrapa
+        document.getElementById('scannerModal').addEventListener('hide.bs.modal', function() {
             stopQrScanner();
-        });
-        
-        window.addEventListener('click', function(event) {
-            if (event.target === scannerModal) {
-                scannerModal.style.display = 'none';
-                stopQrScanner();
-            }
         });
         
         addQuantityBtn.addEventListener('click', function() {
             quantityOperation = 'add';
-            addQuantityBtn.classList.add('bg-green-700');
-            addQuantityBtn.classList.remove('bg-green-500');
-            subtractQuantityBtn.classList.add('bg-red-500');
-            subtractQuantityBtn.classList.remove('bg-red-700');
+            addQuantityBtn.classList.add('active');
+            subtractQuantityBtn.classList.remove('active');
         });
         
         subtractQuantityBtn.addEventListener('click', function() {
             quantityOperation = 'subtract';
-            subtractQuantityBtn.classList.add('bg-red-700');
-            subtractQuantityBtn.classList.remove('bg-red-500');
-            addQuantityBtn.classList.add('bg-green-500');
-            addQuantityBtn.classList.remove('bg-green-700');
+            subtractQuantityBtn.classList.add('active');
+            addQuantityBtn.classList.remove('active');
         });
         
         updateInventoryBtn.addEventListener('click', async function() {
@@ -687,7 +589,7 @@
             const success = await updateQuantity(scannedItem.itemId, newQuantity);
             if (success) {
                 alert(`Stan magazynowy produktu "${scannedItem.itemName}" został zaktualizowany.`);
-                scannerModal.style.display = 'none';
+                scannerModal.hide();
                 stopQrScanner();
             }
         });
@@ -717,7 +619,7 @@
             setInterval(fetchInventory, 10000);
         }
 
-        window.onload = init;
+        document.addEventListener('DOMContentLoaded', init);
     </script>
 </body>
 </html>
