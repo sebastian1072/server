@@ -408,7 +408,7 @@
             }
         }
 
-        // Funkcja do aktualizacji ilości produktu
+        // Funkcja do aktualizacji ilości produktu metodą "usuń i dodaj"
         async function updateQuantity(itemId, newQuantity) {
             try {
                 // Znajdź aktualne dane produktu
@@ -419,24 +419,42 @@
                 
                 console.log('Aktualizacja produktu:', itemId, 'Nowa ilość:', newQuantity);
                 
-                // Wysyłamy tylko potrzebne pola do aktualizacji
-                const response = await fetch(`${API_URL}/${itemId}`, {
-                    method: 'PUT',
+                // Tworzymy kopię obiektu z nową ilością
+                const updatedItem = {
+                    ...item,
+                    quantity: newQuantity,
+                    lastUpdated: new Date().toISOString().slice(0, 10)
+                };
+                
+                // Usuwanie nie może zawierać _id, więc usuwamy używając itemId
+                console.log('Krok 1: Usuwanie istniejącego elementu');
+                const deleteResponse = await fetch(`${API_URL}/${itemId}`, {
+                    method: 'DELETE'
+                });
+                
+                if (!deleteResponse.ok) {
+                    console.error('Błąd podczas usuwania:', await deleteResponse.text());
+                    throw new Error(`Nie można usunąć elementu. Status: ${deleteResponse.status}`);
+                }
+                
+                console.log('Krok 2: Dodawanie zaktualizowanego elementu');
+                // Usuwamy pole _id przed dodaniem - MongoDB wygeneruje nowe
+                delete updatedItem._id;
+                
+                const addResponse = await fetch(API_URL, {
+                    method: 'POST',
                     headers: {
                         'Content-Type': 'application/json'
                     },
-                    body: JSON.stringify({
-                        quantity: newQuantity,
-                        lastUpdated: new Date().toISOString().slice(0, 10)
-                    })
+                    body: JSON.stringify(updatedItem)
                 });
                 
-                if (!response.ok) {
-                    const errorText = await response.text();
-                    console.error('Odpowiedź serwera:', errorText);
-                    throw new Error(`Błąd HTTP! Status: ${response.status}`);
+                if (!addResponse.ok) {
+                    console.error('Błąd podczas dodawania:', await addResponse.text());
+                    throw new Error(`Nie można dodać zaktualizowanego elementu. Status: ${addResponse.status}`);
                 }
                 
+                console.log('Aktualizacja zakończona sukcesem!');
                 await fetchInventory(); // Odśwież dane po aktualizacji
                 return true;
             } catch (error) {
