@@ -397,8 +397,15 @@
                     throw new Error('Nie znaleziono produktu o podanym ID');
                 }
 
-                // Stwórz obiekt z aktualizacją
-                const updatedItem = { ...item, quantity: newQuantity };
+                // Wyślij tylko niezbędne dane (zamiast całego obiektu)
+                const updateData = {
+                    quantity: newQuantity
+                };
+
+                // Wyświetl informacje diagnostyczne w konsoli
+                console.log('Aktualizacja przedmiotu:', itemId);
+                console.log('Nowa ilość:', newQuantity);
+                console.log('Dane wysyłane:', JSON.stringify(updateData));
 
                 // Wyślij żądanie aktualizacji
                 const response = await fetch(`${API_URL}/${itemId}`, {
@@ -406,12 +413,20 @@
                     headers: {
                         'Content-Type': 'application/json'
                     },
-                    body: JSON.stringify(updatedItem)
+                    body: JSON.stringify(updateData)
                 });
 
                 if (!response.ok) {
-                    const errorData = await response.json();
-                    throw new Error(`Błąd HTTP! Status: ${response.status}, Wiadomość: ${errorData.message}`);
+                    // Próbuj pobrać komunikat błędu jako JSON
+                    let errorMessage;
+                    try {
+                        const errorData = await response.json();
+                        errorMessage = errorData.message || `Błąd HTTP! Status: ${response.status}`;
+                    } catch (e) {
+                        // Jeśli odpowiedź nie jest w formacie JSON
+                        errorMessage = `Błąd HTTP! Status: ${response.status}`;
+                    }
+                    throw new Error(errorMessage);
                 }
 
                 await fetchInventory(); // Odśwież dane po aktualizacji
@@ -553,9 +568,13 @@
             if (html5QrCode && html5QrCode.isScanning) {
                 html5QrCode.stop().then(() => {
                     console.log('Skaner zatrzymany');
+                    html5QrCode = null; // Ważne: resetuj zmienną, aby umożliwić ponowną inicjalizację
                 }).catch(err => {
                     console.error('Błąd podczas zatrzymywania skanera:', err);
+                    html5QrCode = null; // Resetuj nawet w przypadku błędu
                 });
+            } else {
+                html5QrCode = null; // Na wszelki wypadek
             }
         }
 
@@ -591,12 +610,19 @@
 
         // Obsługa przycisku "Skanuj Kod QR"
         scanQrBtn.addEventListener('click', function() {
+            // Upewnij się, że skaner jest zresetowany
+            html5QrCode = null;
+            
             // Pokaż modal skanera
             scannerModal.style.display = 'block';
+            
             // Zresetuj panel wyników
             scanResult.classList.add('hidden');
+            
             // Inicjalizuj skaner
-            initQrScanner();
+            setTimeout(() => {
+                initQrScanner();
+            }, 100); // Małe opóźnienie dla lepszej kompatybilności z przeglądarkami
         });
         
         // Zamknięcie modalu
