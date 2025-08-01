@@ -1,1209 +1,789 @@
 <!DOCTYPE html>
 <html lang="pl">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Aplikacja Magazynu Produkcyjnego</title>
-    <!-- Ładowanie Tailwind CSS -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    <style>
-        body {
-            font-family: 'Inter', sans-serif;
-            background-color: #f3f4f6;
-            color: #374151;
-        }
-        table {
-            width: 100%;
-            border-collapse: separate;
-            border-spacing: 0;
-            overflow: hidden;
-            border-radius: 0.75rem;
-        }
-        th, td {
-            padding: 1rem 1.5rem;
-            text-align: left;
-            border-bottom: 1px solid #e5e7eb;
-        }
-        th {
-            background-color: #4f46e5;
-            color: white;
-            font-weight: 600;
-            text-transform: uppercase;
-            letter-spacing: 0.05em;
-            cursor: pointer;
-        }
-        tr:nth-child(even) {
-            background-color: #f9fafb;
-        }
-        tr:hover {
-            background-color: #eef2ff;
-        }
-        th:first-child { border-top-left-radius: 0.75rem; }
-        th:last-child { border-top-right-radius: 0.75rem; }
-        tr:last-child td:first-child { border-bottom-left-radius: 0.75rem; }
-        tr:last-child td:last-child { border-bottom-right-radius: 0.75rem; }
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Aplikacja Magazynu Produkcyjnego</title>
+        <script src="https://cdn.tailwindcss.com"></script>
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.1.1/css/all.min.css">
+        <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f3f4f6;
+            color: #374151;
+        }
+        table {
+            width: 100%;
+            border-collapse: separate;
+            border-spacing: 0;
+            overflow: hidden;
+            border-radius: 0.75rem;
+        }
+        th, td {
+            padding: 1rem 1.5rem;
+            text-align: left;
+            border-bottom: 1px solid #e5e7eb;
+            /* Zmiana: Ukryj kolumny na małych ekranach, oprócz kluczowych */
+            @media (max-width: 768px) {
+                &:nth-child(2), &:nth-child(4) {
+                    display: none;
+                }
+                th, td {
+                    padding: 0.75rem 1rem;
+                }
+            }
+        }
+        th {
+            background-color: #4f46e5;
+            color: white;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            cursor: pointer; /* Zmiana: Dodanie kursora na nagłówkach */
+        }
+        th.sortable:after {
+            content: '';
+            display: inline-block;
+            margin-left: 0.5rem;
+            width: 0;
+            height: 0;
+            border-left: 5px solid transparent;
+            border-right: 5px solid transparent;
+            vertical-align: middle;
+        }
+        th.asc:after { border-bottom: 5px solid white; }
+        th.desc:after { border-top: 5px solid white; }
+        tr:nth-child(even) {
+            background-color: #f9fafb;
+        }
+        tr:hover {
+            background-color: #eef2ff;
+        }
+        th:first-child { border-top-left-radius: 0.75rem; }
+        th:last-child { border-top-right-radius: 0.75rem; }
+        tr:last-child td:first-child { border-bottom-left-radius: 0.75rem; }
+        tr:last-child td:last-child { border-bottom-right-radius: 0.75rem; }
 
-        /* Ikony sortowania */
-        .sort-icon::after {
-            content: " ↕️";
-            font-size: 0.8em;
-        }
-        .sort-asc::after {
-            content: " ↑";
-            font-size: 0.8em;
-        }
-        .sort-desc::after {
-            content: " ↓";
-            font-size: 0.8em;
-        }
+        /* Kontener na etykiety do druku (domyślnie poza ekranem) */
+        .print-container {
+            position: absolute;
+            left: -9999px;
+            top: 0;
+            width: 100%;
+            height: auto;
+            overflow: hidden;
+            z-index: -1;
+        }
 
-        /* Kontener na etykiety do druku (domyślnie poza ekranem) */
-        .print-container {
-            position: absolute;
-            left: -9999px;
-            top: 0;
-            width: 100%;
-            height: auto;
-            overflow: hidden;
-            z-index: -1;
-        }
+        /* Styl dla wydruku etykiet */
+        @media print {
+            body > *:not(.print-container) {
+                display: none;
+            }
+            .print-container {
+                position: static;
+                left: auto;
+                top: auto;
+                display: flex; /* Zmiana: Użyj flexbox do układu etykiet */
+                flex-wrap: wrap;
+                align-content: flex-start;
+                width: 100%;
+                margin: 0;
+                padding: 0;
+                z-index: auto;
+            }
+            .label-item {
+                display: inline-block;
+                width: 9cm;
+                height: 5cm;
+                border: 1px solid #333;
+                margin: 0.5cm;
+                padding: 0.5cm;
+                box-sizing: border-box;
+                text-align: center;
+                page-break-inside: avoid;
+                overflow: hidden;
+            }
+            .label-item .qr-code {
+                width: 3.5cm !important;
+                height: 3.5cm !important;
+                margin: 0 auto;
+                display: block;
+            }
+            .label-item h3 {
+                font-size: 14px;
+                font-weight: bold;
+                margin: 5px 0;
+            }
+            .label-item p {
+                font-size: 12px;
+                margin: 2px 0;
+            }
+        }
 
-        /* Styl dla wydruku etykiet */
-        @media print {
-            body > *:not(.print-container) {
-                display: none;
-            }
-            .print-container {
-                position: static;
-                left: auto;
-                top: auto;
-                display: block;
-                width: 100%;
-                margin: 0;
-                padding: 0;
-                z-index: auto;
-            }
-            .label-item {
-                display: inline-block;
-                width: 9cm;
-                height: 5cm;
-                border: 1px solid #333;
-                margin: 0.5cm;
-                padding: 0.5cm;
-                box-sizing: border-box;
-                text-align: center;
-                page-break-inside: avoid;
-                overflow: hidden;
-            }
-            .label-item .qr-code {
-                width: 3.5cm !important;
-                height: 3.5cm !important;
-                margin: 0 auto;
-                display: block;
-            }
-            .label-item h3 {
-                font-size: 14px;
-                font-weight: bold;
-                margin: 5px 0;
-            }
-            .label-item p {
-                font-size: 12px;
-                margin: 2px 0;
-            }
-        }
-
-        /* Style dla modalu skanera */
-        .modal {
-            display: none;
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background-color: rgba(0,0,0,0.7);
-            z-index: 1000;
-            overflow: auto;
-        }
-        
-        .modal-content {
-            background-color: white;
-            margin: 10% auto;
-            padding: 20px;
-            border-radius: 8px;
-            width: 80%;
-            max-width: 500px;
-        }
-        
-        .close {
-            float: right;
-            font-size: 28px;
-            font-weight: bold;
-            cursor: pointer;
-        }
-        
-        #scanner-container {
-            width: 100%;
-            height: 300px;
-            margin: 0 auto;
-            overflow: hidden;
-            position: relative;
-        }
-        
-        #scanner-container video {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-        }
-        
-        .inventory-update {
-            margin-top: 20px;
-            padding: 15px;
-            border: 1px solid #e5e7eb;
-            border-radius: 8px;
-            background-color: #f9fafb;
-        }
-
-        /* Responsywność na urządzeniach mobilnych */
-        @media (max-width: 768px) {
-            .p-8 {
-                padding: 1rem;
-            }
-            
-            table {
-                display: block;
-                overflow-x: auto;
-                white-space: nowrap;
-            }
-            
-            th, td {
-                padding: 0.5rem;
-            }
-            
-            .button-container {
-                display: flex;
-                flex-wrap: wrap;
-                gap: 0.5rem;
-            }
-            
-            .button-container button {
-                flex: 1;
-                min-width: 120px;
-            }
-            
-            .modal-content {
-                margin: 5% auto;
-                width: 95%;
-                padding: 15px;
-            }
-            
-            #scanner-container {
-                height: 250px;
-            }
-        }
-
-        /* Wskaźnik odświeżania */
-        .refresh-indicator {
-            display: inline-flex;
-            align-items: center;
-            font-size: 0.8rem;
-            color: #6b7280;
-            margin-left: 0.5rem;
-        }
-        
-        .refresh-dot {
-            width: 8px;
-            height: 8px;
-            border-radius: 50%;
-            background-color: #10b981;
-            margin-right: 5px;
-            animation: pulse 2s infinite;
-        }
-        
-        @keyframes pulse {
-            0% { opacity: 1; }
-            50% { opacity: 0.3; }
-            100% { opacity: 1; }
-        }
-    </style>
+        /* Style dla modalu skanera */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.7);
+            z-index: 1000;
+            overflow: auto;
+        }
+        
+        .modal-content {
+            background-color: white;
+            margin: 10% auto;
+            padding: 20px;
+            border-radius: 8px;
+            width: 90%; /* Zmiana: Ustawienie na 90% na małych ekranach */
+            max-width: 500px;
+        }
+        
+        .close {
+            float: right;
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+        
+        #scanner-container {
+            width: 100%;
+            height: 300px;
+            margin: 0 auto;
+            overflow: hidden;
+            position: relative;
+        }
+        
+        #scanner-container video {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        
+        .inventory-update {
+            margin-top: 20px;
+            padding: 15px;
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+            background-color: #f9fafb;
+        }
+    </style>
 </head>
-<body class="p-8">
-    <div class="container mx-auto bg-white shadow-lg rounded-xl overflow-hidden mb-8">
-        <h1 class="text-3xl font-bold text-center py-6 bg-indigo-600 text-white rounded-t-xl">
-            Aplikacja Magazynu Produkcyjnego
-        </h1>
-        <div class="p-6">
-            <h2 class="text-2xl font-semibold mb-4 text-indigo-700">Dodaj Nowy Element</h2>
-            <form id="addItemForm" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-8 p-4 border rounded-lg bg-gray-50">
-                <div>
-                    <label for="itemId" class="block text-sm font-medium text-gray-700">ID Elementu:</label>
-                    <div class="flex">
-                        <input type="text" id="itemId" name="itemId" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm p-2">
-                        <button type="button" id="generateIdBtn" class="ml-2 mt-1 inline-flex items-center px-2 py-1 border border-transparent text-xs font-medium rounded shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
-                            Auto
-                        </button>
-                    </div>
-                </div>
-                <div>
-                    <label for="itemName" class="block text-sm font-medium text-gray-700">Nazwa Elementu:</label>
-                    <input type="text" id="itemName" name="itemName" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm p-2">
-                </div>
-                <div>
-                    <label for="description" class="block text-sm font-medium text-gray-700">Opis:</label>
-                    <input type="text" id="description" name="description" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm p-2">
-                </div>
-                <div>
-                    <label for="category" class="block text-sm font-medium text-gray-700">Kategoria:</label>
-                    <input type="text" id="category" name="category" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm p-2">
-                </div>
-                <div>
-                    <label for="quantity" class="block text-sm font-medium text-gray-700">Ilość:</label>
-                    <input type="number" id="quantity" name="quantity" required min="0" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm p-2">
-                </div>
-                <div>
-                    <label for="unit" class="block text-sm font-medium text-gray-700">Jednostka:</label>
-                    <input type="text" id="unit" name="unit" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm p-2">
-                </div>
-                <div>
-                    <label for="location" class="block text-sm font-medium text-gray-700">Lokalizacja:</label>
-                    <input type="text" id="location" name="location" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm p-2">
-                </div>
-                <div>
-                    <label for="supplier" class="block text-sm font-medium text-gray-700">Dostawca:</label>
-                    <input type="text" id="supplier" name="supplier" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm p-2">
-                </div>
-                <div>
-                    <label for="reorderLevel" class="block text-sm font-medium text-gray-700">Poziom Zamówienia:</label>
-                    <input type="number" id="reorderLevel" name="reorderLevel" min="0" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm p-2">
-                </div>
-                <div class="md:col-span-2 lg:col-span-3 flex justify-end">
-                    <button type="submit" class="inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
-                        Dodaj Element
-                    </button>
-                </div>
-            </form>
+<body class="p-4 md:p-8">
+    <div class="container mx-auto bg-white shadow-lg rounded-xl overflow-hidden mb-8">
+        <h1 class="text-2xl md:text-3xl font-bold text-center py-4 md:py-6 bg-indigo-600 text-white rounded-t-xl">
+            Aplikacja Magazynu Produkcyjnego
+        </h1>
+        <div class="p-4 md:p-6">
+            <h2 class="text-xl md:text-2xl font-semibold mb-4 text-indigo-700">Dodaj Nowy Element</h2>
+            <form id="addItemForm" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-8 p-4 border rounded-lg bg-gray-50">
+                <div>
+                    <label for="itemId" class="block text-sm font-medium text-gray-700">ID Elementu:</label>
+                    <input type="text" id="itemId" name="itemId" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm p-2" readonly>                 </div>
+                <div>
+                    <label for="itemName" class="block text-sm font-medium text-gray-700">Nazwa Elementu:</label>
+                    <input type="text" id="itemName" name="itemName" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm p-2">
+                </div>
+                <div>
+                    <label for="description" class="block text-sm font-medium text-gray-700">Opis:</label>
+                    <input type="text" id="description" name="description" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm p-2">
+                </div>
+                <div>
+                    <label for="category" class="block text-sm font-medium text-gray-700">Kategoria:</label>
+                    <input type="text" id="category" name="category" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm p-2">
+                </div>
+                <div>
+                    <label for="quantity" class="block text-sm font-medium text-gray-700">Ilość:</label>
+                    <input type="number" id="quantity" name="quantity" required min="0" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm p-2">
+                </div>
+                <div>
+                    <label for="unit" class="block text-sm font-medium text-gray-700">Jednostka:</label>
+                    <input type="text" id="unit" name="unit" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm p-2">
+                </div>
+                <div>
+                    <label for="location" class="block text-sm font-medium text-gray-700">Lokalizacja:</label>
+                    <input type="text" id="location" name="location" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm p-2">
+                </div>
+                <div>
+                    <label for="supplier" class="block text-sm font-medium text-gray-700">Dostawca:</label>
+                    <input type="text" id="supplier" name="supplier" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm p-2">
+                </div>
+                <div>
+                    <label for="reorderLevel" class="block text-sm font-medium text-gray-700">Poziom Zamówienia:</label>
+                    <input type="number" id="reorderLevel" name="reorderLevel" min="0" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm p-2">
+                </div>
+                <div class="md:col-span-2 lg:col-span-3 flex justify-end">
+                    <button type="submit" class="inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+                        Dodaj Element
+                    </button>
+                </div>
+            </form>
 
-            <div class="flex justify-between items-center mb-4">
-                <h2 class="text-2xl font-semibold text-indigo-700">
-                    Lista Elementów
-                    <span class="refresh-indicator">
-                        <span class="refresh-dot"></span>
-                        <span id="lastRefreshTime">Ostatnie odświeżenie: teraz</span>
-                    </span>
-                </h2>
-                
-                <div class="flex items-center">
-                    <input type="text" id="searchInput" placeholder="Szukaj..." class="mr-2 p-2 border rounded">
-                    <select id="filterCategory" class="mr-2 p-2 border rounded">
-                        <option value="">Wszystkie kategorie</option>
-                    </select>
-                </div>
-            </div>
-            
-            <div class="button-container flex flex-wrap mb-4 gap-2">
-                <button id="printLabelsBtn" class="inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500">
-                    Drukuj Etykiety
-                </button>
-                <button id="scanQrBtn" class="inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
-                    Skanuj Kod QR
-                </button>
-                <button id="exportCsvBtn" class="inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-yellow-600 hover:bg-yellow-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-yellow-500">
-                    Eksportuj CSV
-                </button>
-                <button id="refreshBtn" class="inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-gray-600 hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500">
-                    Odśwież Teraz
-                </button>
-            </div>
-            
-            <div class="overflow-x-auto">
-                <table class="min-w-full divide-y divide-gray-200">
-                    <thead>
-                        <tr>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider sort-icon" data-sort="itemId">
-                                ID Elementu
-                            </th>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider sort-icon" data-sort="itemName">
-                                Nazwa Elementu
-                            </th>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider sort-icon" data-sort="quantity">
-                                Ilość
-                            </th>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider sort-icon" data-sort="location">
-                                Lokalizacja
-                            </th>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider">
-                                Akcje
-                            </th>
-                        </tr>
-                    </thead>
-                    <tbody id="inventoryTableBody" class="bg-white divide-y divide-gray-200">
-                        <!-- Elementy będą dodawane tutaj przez JavaScript -->
-                    </tbody>
-                </table>
-            </div>
-        </div>
-    </div>
+            <h2 class="text-xl md:text-2xl font-semibold mb-4 text-indigo-700">Lista Elementów</h2>
+            <div class="flex flex-wrap gap-2 mb-4">
+                <button id="printLabelsBtn" class="inline-flex items-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500">
+                    <i class="fa-solid fa-print mr-2"></i>Drukuj Etykiety
+                </button>
+                <button id="scanQrBtn" class="inline-flex items-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                    <i class="fa-solid fa-qrcode mr-2"></i>Skanuj Kod QR
+                </button>
+                <button id="exportCsvBtn" class="inline-flex items-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-purple-600 hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500">
+                    <i class="fa-solid fa-file-csv mr-2"></i>Eksportuj do CSV
+                </button>
+            </div>
+            <div class="overflow-x-auto">                 <table class="min-w-full divide-y divide-gray-200">
+                    <thead>
+                        <tr>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider sortable" data-sort="itemId">
+                                ID Elementu
+                            </th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider sortable" data-sort="itemName">
+                                Nazwa Elementu
+                            </th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider sortable" data-sort="quantity">
+                                Ilość
+                            </th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider sortable" data-sort="location">
+                                Lokalizacja
+                            </th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider">
+                                Akcje
+                            </th>
+                        </tr>
+                    </thead>
+                    <tbody id="inventoryTableBody" class="bg-white divide-y divide-gray-200">
+                                            </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
 
-    <!-- Kontener na etykiety do druku (domyślnie poza ekranem) -->
-    <div id="printContainer" class="print-container"></div>
+        <div id="printContainer" class="print-container"></div>
 
-    <!-- Modal do skanowania QR kodów -->
-    <div id="scannerModal" class="modal">
-        <div class="modal-content">
-            <span class="close">&times;</span>
-            <h2 class="text-xl font-semibold mb-4">Skanowanie Kodu QR</h2>
-            <div id="scanner-container">
-                <video id="scanner-video"></video>
-            </div>
-            <div id="scan-result" class="inventory-update hidden">
-                <h3 id="scanned-item-name" class="font-bold mb-2">Nazwa przedmiotu</h3>
-                <p id="scanned-item-id"></p>
-                <p id="scanned-item-quantity" class="mb-3">Aktualna ilość: <span></span></p>
-                
-                <div class="flex flex-col space-y-3">
-                    <div class="flex items-center">
-                        <input type="number" id="quantity-change" class="w-20 p-2 border rounded mr-2" min="1" value="1">
-                        <button id="add-quantity" class="bg-green-500 text-white px-3 py-1 rounded mr-2">Dodaj</button>
-                        <button id="subtract-quantity" class="bg-red-500 text-white px-3 py-1 rounded">Odejmij</button>
-                    </div>
-                    <button id="update-inventory" class="bg-blue-600 text-white px-4 py-2 rounded mt-2">Aktualizuj stan magazynowy</button>
-                </div>
-            </div>
-        </div>
-    </div>
+        <div id="scannerModal" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h2 class="text-xl font-semibold mb-4">Skanowanie Kodu QR</h2>
+            <div id="scanner-container">
+                <video id="scanner-video"></video>
+            </div>
+            <div id="scan-result" class="inventory-update hidden">
+                <h3 id="scanned-item-name" class="font-bold mb-2">Nazwa przedmiotu</h3>
+                <p id="scanned-item-id"></p>
+                <p id="scanned-item-quantity" class="mb-3">Aktualna ilość: <span></span></p>
+                
+                <div class="flex flex-col space-y-3">
+                    <div class="flex items-center">
+                        <input type="number" id="quantity-change" class="w-20 p-2 border rounded mr-2" min="1" value="1">
+                        <button id="add-quantity" class="bg-green-500 text-white px-3 py-1 rounded mr-2"><i class="fa-solid fa-plus"></i></button>
+                        <button id="subtract-quantity" class="bg-red-500 text-white px-3 py-1 rounded"><i class="fa-solid fa-minus"></i></button>
+                    </div>
+                    <button id="update-inventory" class="bg-blue-600 text-white px-4 py-2 rounded mt-2">Aktualizuj stan magazynowy</button>
+                </div>
+            </div>
+        </div>
+    </div>
 
-    <!-- Modal podglądu etykiety (dla urządzeń mobilnych) -->
-    <div id="labelPreviewModal" class="modal">
-        <div class="modal-content">
-            <span class="close">&times;</span>
-            <h2 class="text-xl font-semibold mb-4">Podgląd etykiety</h2>
-            <div id="labelPreviewContainer" class="border p-4 mb-4"></div>
-            <div class="flex justify-between">
-                <button id="downloadLabelPDF" class="bg-blue-600 text-white px-4 py-2 rounded">Pobierz PDF</button>
-                <button id="closePreviewBtn" class="bg-gray-600 text-white px-4 py-2 rounded">Zamknij</button>
-            </div>
-        </div>
-    </div>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <script src="https://unpkg.com/html5-qrcode"></script>
 
-    <!-- Ładowanie bibliotek -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
-    <script src="https://unpkg.com/html5-qrcode"></script>
+    <script>
+        const addItemForm = document.getElementById('addItemForm');
+        const itemIdInput = document.getElementById('itemId');
+        const inventoryTableBody = document.getElementById('inventoryTableBody');
+        const printLabelsBtn = document.getElementById('printLabelsBtn');
+        const printContainer = document.getElementById('printContainer');
+        const scanQrBtn = document.getElementById('scanQrBtn');
+        const exportCsvBtn = document.getElementById('exportCsvBtn'); // Nowy przycisk do CSV
+        const scannerModal = document.getElementById('scannerModal');
+        const closeModal = document.querySelector('.close');
+        const scanResult = document.getElementById('scan-result');
+        const scannedItemName = document.getElementById('scanned-item-name');
+        const scannedItemId = document.getElementById('scanned-item-id');
+        const scannedItemQuantity = document.getElementById('scanned-item-quantity').querySelector('span');
+        const quantityChange = document.getElementById('quantity-change');
+        const addQuantityBtn = document.getElementById('add-quantity');
+        const subtractQuantityBtn = document.getElementById('subtract-quantity');
+        const updateInventoryBtn = document.getElementById('update-inventory');
 
-    <script>
-        const addItemForm = document.getElementById('addItemForm');
-        const inventoryTableBody = document.getElementById('inventoryTableBody');
-        const printLabelsBtn = document.getElementById('printLabelsBtn');
-        const printContainer = document.getElementById('printContainer');
-        const scanQrBtn = document.getElementById('scanQrBtn');
-        const scannerModal = document.getElementById('scannerModal');
-        const closeModal = document.querySelectorAll('.close');
-        const scanResult = document.getElementById('scan-result');
-        const scannedItemName = document.getElementById('scanned-item-name');
-        const scannedItemId = document.getElementById('scanned-item-id');
-        const scannedItemQuantity = document.getElementById('scanned-item-quantity').querySelector('span');
-        const quantityChange = document.getElementById('quantity-change');
-        const addQuantityBtn = document.getElementById('add-quantity');
-        const subtractQuantityBtn = document.getElementById('subtract-quantity');
-        const updateInventoryBtn = document.getElementById('update-inventory');
-        const exportCsvBtn = document.getElementById('exportCsvBtn');
-        const refreshBtn = document.getElementById('refreshBtn');
-        const lastRefreshTime = document.getElementById('lastRefreshTime');
-        const generateIdBtn = document.getElementById('generateIdBtn');
-        const searchInput = document.getElementById('searchInput');
-        const filterCategory = document.getElementById('filterCategory');
-        const labelPreviewModal = document.getElementById('labelPreviewModal');
-        const labelPreviewContainer = document.getElementById('labelPreviewContainer');
-        const downloadLabelPDF = document.getElementById('downloadLabelPDF');
-        const closePreviewBtn = document.getElementById('closePreviewBtn');
+        // Adres URL Twojego serwera Express
+        const API_URL = 'https://serwer.sebaruman.pl/api/inventory';
 
-        // Adres URL Twojego serwera Express
-        const API_URL = 'http://serwer.sebaruman.pl/api/inventory';
+        let inventory = []; // Tablica do przechowywania elementów magazynowych
+        let scannedItem = null; // Aktualnie zeskanowany element
+        let quantityOperation = 'add'; // Domyślna operacja: 'add' lub 'subtract'
+        let html5QrCode = null; // Referencja do skanera QR
+        
+        // Zmienne do sortowania
+        let sortColumn = 'itemId';
+        let sortDirection = 'asc';
 
-        let inventory = []; // Tablica do przechowywania elementów magazynowych
-        let scannedItem = null; // Aktualnie zeskanowany element
-        let quantityOperation = 'add'; // Domyślna operacja: 'add' lub 'subtract'
-        let html5QrCode = null; // Referencja do skanera QR
-        let sortConfig = { field: 'itemId', direction: 'asc' }; // Domyślne sortowanie
-        let refreshInterval; // Referencja do interwału odświeżania
-        let filteredInventory = []; // Przefiltrowana lista elementów
+        // Funkcja do generowania unikalnego, chronologicznego ID
+        async function generateItemId() {
+            const now = new Date();
+            const timestamp = now.getTime(); // Czas w milisekundach jako podstawa
+            const randomPart = Math.floor(Math.random() * 1000); // Losowa część
+            
+            return `ITEM-${timestamp}-${randomPart}`;
+        }
 
-        // Funkcja do pobierania danych z serwera
-        async function fetchInventory() {
-            try {
-                const response = await fetch(API_URL);
-                if (!response.ok) {
-                    throw new Error(`Błąd HTTP! Status: ${response.status}`);
-                }
-                inventory = await response.json();
-                // Aktualizuj czas ostatniego odświeżenia
-                updateLastRefreshTime();
-                // Aktualizuj listę kategorii
-                updateCategoryFilter();
-                // Zastosuj filtrowanie i sortowanie
-                applyFiltersAndSort();
-                // Renderuj tabelę
-                renderInventory(); 
-            } catch (error) {
-                console.error('Błąd podczas pobierania danych z serwera:', error);
-                // Nie pokazujemy alertu przy automatycznym odświeżaniu
-                if (!refreshInterval) {
-                    alert('Nie udało się pobrać danych magazynowych. Upewnij się, że serwer działa.');
-                }
-            }
-        }
+        // Funkcja do pobierania danych z serwera
+        async function fetchInventory() {
+            try {
+                const response = await fetch(API_URL);
+                if (!response.ok) {
+                    throw new Error(`Błąd HTTP! Status: ${response.status}`);
+                }
+                inventory = await response.json();
+                sortAndRenderInventory(); // Odśwież tabelę po pobraniu danych
+            } catch (error) {
+                console.error('Błąd podczas pobierania danych z serwera:', error);
+                // alert('Nie udało się pobrać danych magazynowych. Upewnij się, że serwer działa.'); // Wyłączono alert, aby nie przeszkadzał w odświeżaniu
+            }
+        }
+        
+        // Funkcja do sortowania i renderowania
+        function sortAndRenderInventory() {
+            inventory.sort((a, b) => {
+                let valA = a[sortColumn];
+                let valB = b[sortColumn];
 
-        // Funkcja do aktualizacji czasu ostatniego odświeżenia
-        function updateLastRefreshTime() {
-            const now = new Date();
-            const timeString = now.toLocaleTimeString();
-            lastRefreshTime.textContent = `Ostatnie odświeżenie: ${timeString}`;
-        }
+                if (typeof valA === 'string') valA = valA.toLowerCase();
+                if (typeof valB === 'string') valB = valB.toLowerCase();
+                
+                if (valA < valB) return sortDirection === 'asc' ? -1 : 1;
+                if (valA > valB) return sortDirection === 'asc' ? 1 : -1;
+                return 0;
+            });
+            renderInventory();
+        }
 
-        // Funkcja do aktualizacji listy kategorii w filtrze
-        function updateCategoryFilter() {
-            // Zachowaj aktualnie wybraną wartość
-            const selectedValue = filterCategory.value;
-            
-            // Zbierz unikalne kategorie
-            const categories = [...new Set(inventory.map(item => item.category).filter(Boolean))];
-            
-            // Wyczyść select oprócz pierwszej opcji
-            while (filterCategory.options.length > 1) {
-                filterCategory.remove(1);
-            }
-            
-            // Dodaj kategorie do selecta
-            categories.forEach(category => {
-                const option = document.createElement('option');
-                option.value = category;
-                option.textContent = category;
-                filterCategory.appendChild(option);
-            });
-            
-            // Przywróć wybraną wartość, jeśli nadal jest dostępna
-            if (categories.includes(selectedValue)) {
-                filterCategory.value = selectedValue;
-            }
-        }
+        // Funkcja do renderowania (wyświetlania) elementów w tabeli
+        function renderInventory() {
+            inventoryTableBody.innerHTML = ''; // Wyczyść tabelę przed ponownym renderowaniem
+            inventory.forEach((item, index) => {
+                const row = inventoryTableBody.insertRow();
+                row.innerHTML = `
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${item.itemId}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${item.itemName}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${item.quantity} ${item.unit || ''}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${item.location || ''}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                        <button onclick="printSingleLabel('${item.itemId}')" class="text-green-600 hover:text-green-900 mx-1"><i class="fa-solid fa-print"></i></button>
+                        <button onclick="showItemDetails('${item.itemId}')" class="text-blue-600 hover:text-blue-900 mx-1"><i class="fa-solid fa-circle-info"></i></button>
+                        <button onclick="deleteItem('${item.itemId}')" class="text-red-600 hover:text-red-900 mx-1"><i class="fa-solid fa-trash"></i></button>
+                    </td>
+                `;
+            });
+        }
 
-        // Funkcja filtrująca i sortująca dane
-        function applyFiltersAndSort() {
-            // Najpierw filtruj
-            const searchTerm = searchInput.value.toLowerCase();
-            const categoryFilter = filterCategory.value;
-            
-            filteredInventory = inventory.filter(item => {
-                // Szukaj we wszystkich tekstowych polach
-                const matchesSearch = 
-                    (item.itemId && item.itemId.toLowerCase().includes(searchTerm)) ||
-                    (item.itemName && item.itemName.toLowerCase().includes(searchTerm)) ||
-                    (item.description && item.description.toLowerCase().includes(searchTerm)) ||
-                    (item.location && item.location.toLowerCase().includes(searchTerm)) ||
-                    (item.supplier && item.supplier.toLowerCase().includes(searchTerm));
-                
-                // Filtruj po kategorii
-                const matchesCategory = !categoryFilter || item.category === categoryFilter;
-                
-                return matchesSearch && matchesCategory;
-            });
-            
-            // Potem sortuj
-            filteredInventory.sort((a, b) => {
-                let aValue = a[sortConfig.field];
-                let bValue = b[sortConfig.field];
-                
-                // Obsługa wartości null/undefined
-                if (aValue === null || aValue === undefined) aValue = '';
-                if (bValue === null || bValue === undefined) bValue = '';
-                
-                // Konwertuj na liczby dla pól liczbowych
-                if (sortConfig.field === 'quantity' || sortConfig.field === 'reorderLevel') {
-                    aValue = Number(aValue) || 0;
-                    bValue = Number(bValue) || 0;
-                }
-                
-                // Porównanie w zależności od kierunku sortowania
-                if (sortConfig.direction === 'asc') {
-                    return aValue > bValue ? 1 : aValue < bValue ? -1 : 0;
-                } else {
-                    return aValue < bValue ? 1 : aValue > bValue ? -1 : 0;
-                }
-            });
-        }
+        // Funkcja diagnostyczna - pokaż szczegóły elementu
+        function showItemDetails(itemId) {
+            const item = inventory.find(i => i.itemId === itemId);
+            if (!item) {
+                alert('Nie znaleziono elementu!');
+                return;
+            }
+            
+            console.log('Szczegóły elementu:', item);
+            
+            let details = 'Szczegóły elementu:\n\n';
+            for (const [key, value] of Object.entries(item)) {
+                details += `${key}: ${value}\n`;
+            }
+            
+            alert(details);
+        }
 
-        // Funkcja do renderowania (wyświetlania) elementów w tabeli
-        function renderInventory() {
-            inventoryTableBody.innerHTML = ''; // Wyczyść tabelę przed ponownym renderowaniem
-            
-            if (filteredInventory.length === 0) {
-                const row = inventoryTableBody.insertRow();
-                const cell = row.insertCell();
-                cell.colSpan = 5;
-                cell.className = "px-6 py-4 text-center text-gray-500";
-                cell.textContent = "Brak elementów do wyświetlenia";
-                return;
-            }
-            
-            filteredInventory.forEach((item) => {
-                const row = inventoryTableBody.insertRow();
-                row.innerHTML = `
-                    <td class="px-6 py-4 whitespace-nowrap">${item.itemId}</td>
-                    <td class="px-6 py-4 whitespace-nowrap">${item.itemName}</td>
-                    <td class="px-6 py-4 whitespace-nowrap">${item.quantity} ${item.unit || ''}</td>
-                    <td class="px-6 py-4 whitespace-nowrap">${item.location || ''}</td>
-                    <td class="px-6 py-4 whitespace-nowrap flex flex-wrap gap-1">
-                        <button onclick="printSingleLabel('${item.itemId}')" class="text-green-600 hover:text-green-900 bg-green-100 hover:bg-green-200 px-2 py-1 rounded">
-                            Drukuj
-                        </button>
-                        <button onclick="showItemDetails('${item.itemId}')" class="text-blue-600 hover:text-blue-900 bg-blue-100 hover:bg-blue-200 px-2 py-1 rounded">
-                            Info
-                        </button>
-                        <button onclick="deleteItem('${item.itemId}')" class="text-red-600 hover:text-red-900 bg-red-100 hover:bg-red-200 px-2 py-1 rounded">
-                            Usuń
-                        </button>
-                    </td>
-                `;
-            });
-        }
+        // Funkcja do dodawania nowego elementu
+        addItemForm.addEventListener('submit', async function(event) {
+            event.preventDefault(); // Zapobiegaj domyślnej wysyłce formularza
 
-        // Funkcja do generowania unikalnego ID
-        function generateUniqueId() {
-            const date = new Date();
-            const year = date.getFullYear().toString().slice(-2);
-            const month = (date.getMonth() + 1).toString().padStart(2, '0');
-            const day = date.getDate().toString().padStart(2, '0');
-            const hours = date.getHours().toString().padStart(2, '0');
-            const minutes = date.getMinutes().toString().padStart(2, '0');
-            const seconds = date.getSeconds().toString().padStart(2, '0');
-            const random = Math.floor(Math.random() * 1000).toString().padStart(3, '0');
-            
-            return `${year}${month}${day}-${hours}${minutes}${seconds}-${random}`;
-        }
+            const newItem = {
+                itemId: await generateItemId(),
+                itemName: document.getElementById('itemName').value,
+                description: document.getElementById('description').value,
+                category: document.getElementById('category').value,
+                quantity: parseInt(document.getElementById('quantity').value),
+                unit: document.getElementById('unit').value,
+                location: document.getElementById('location').value,
+                supplier: document.getElementById('supplier').value,
+                reorderLevel: parseInt(document.getElementById('reorderLevel').value),
+                lastUpdated: new Date().toISOString().slice(0, 10) // Aktualna data w formacie YYYY-MM-DD
+            };
 
-        // Funkcja do eksportu danych do CSV
-        function exportToCSV() {
-            if (inventory.length === 0) {
-                alert('Brak danych do eksportu.');
-                return;
-            }
-            
-            // Definiuj nagłówki
-            const headers = [
-                'ID Elementu', 'Nazwa Elementu', 'Opis', 'Kategoria', 
-                'Ilość', 'Jednostka', 'Lokalizacja', 'Dostawca', 
-                'Poziom Zamówienia', 'Ostatnia Aktualizacja'
-            ];
-            
-            // Mapuj dane
-            const csvData = inventory.map(item => [
-                item.itemId || '',
-                item.itemName || '',
-                item.description || '',
-                item.category || '',
-                item.quantity || 0,
-                item.unit || '',
-                item.location || '',
-                item.supplier || '',
-                item.reorderLevel || 0,
-                item.lastUpdated ? new Date(item.lastUpdated).toLocaleDateString() : ''
-            ]);
-            
-            // Dodaj nagłówki na początku
-            csvData.unshift(headers);
-            
-            // Konwertuj na format CSV
-            let csvString = '';
-            csvData.forEach(row => {
-                const processedRow = row.map(field => {
-                    // Jeśli pole zawiera przecinki, cudzysłowy lub nowe linie, umieść je w cudzysłowach
-                    if (typeof field === 'string' && (field.includes(',') || field.includes('"') || field.includes('\n'))) {
-                        return `"${field.replace(/"/g, '""')}"`;
-                    }
-                    return field;
-                });
-                csvString += processedRow.join(',') + '\n';
-            });
-            
-            // Utwórz Blob i link do pobrania
-            const blob = new Blob([csvString], { type: 'text/csv;charset=utf-8;' });
-            const link = document.createElement('a');
-            const url = URL.createObjectURL(blob);
-            
-            link.setAttribute('href', url);
-            link.setAttribute('download', `inventario_${new Date().toISOString().slice(0, 10)}.csv`);
-            link.style.display = 'none';
-            
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
-        }
+            try {
+                const response = await fetch(API_URL, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(newItem)
+                });
 
-        // Funkcja do aktualizacji ilości produktu metodą "usuń i dodaj"
-        async function updateQuantity(itemId, newQuantity) {
-            try {
-                // Znajdź aktualne dane produktu
-                const item = inventory.find(item => item.itemId === itemId);
-                if (!item) {
-                    throw new Error('Nie znaleziono produktu o podanym ID');
-                }
-                
-                console.log('Aktualizacja produktu:', itemId, 'Nowa ilość:', newQuantity);
-                
-                // Tworzymy kopię obiektu z nową ilością
-                const updatedItem = {
-                    ...item,
-                    quantity: newQuantity,
-                    lastUpdated: new Date().toISOString().slice(0, 10)
-                };
-                
-                // Usuwanie nie może zawierać _id, więc usuwamy używając itemId
-                console.log('Krok 1: Usuwanie istniejącego elementu');
-                const deleteResponse = await fetch(`${API_URL}/${itemId}`, {
-                    method: 'DELETE'
-                });
-                
-                if (!deleteResponse.ok) {
-                    console.error('Błąd podczas usuwania:', await deleteResponse.text());
-                    throw new Error(`Nie można usunąć elementu. Status: ${deleteResponse.status}`);
-                }
-                
-                console.log('Krok 2: Dodawanie zaktualizowanego elementu');
-                // Usuwamy pole _id przed dodaniem - MongoDB wygeneruje nowe
-                delete updatedItem._id;
-                
-                const addResponse = await fetch(API_URL, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify(updatedItem)
-                });
-                
-                if (!addResponse.ok) {
-                    console.error('Błąd podczas dodawania:', await addResponse.text());
-                    throw new Error(`Nie można dodać zaktualizowanego elementu. Status: ${addResponse.status}`);
-                }
-                
-                console.log('Aktualizacja zakończona sukcesem!');
-                await fetchInventory(); // Odśwież dane po aktualizacji
-                return true;
-            } catch (error) {
-                console.error('Błąd podczas aktualizacji ilości:', error);
-                alert(`Nie udało się zaktualizować ilości: ${error.message}`);
-                return false;
-            }
-        }
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(`Błąd HTTP! Status: ${response.status}, Wiadomość: ${errorData.message}`);
+                }
 
-        // Funkcja do dodawania nowego elementu
-        addItemForm.addEventListener('submit', async function(event) {
-            event.preventDefault(); // Zapobiegaj domyślnej wysyłce formularza
+                await fetchInventory(); // Odśwież dane po dodaniu
+                addItemForm.reset(); // Wyczyść formularz
+                alert('Element dodany pomyślnie!');
+                itemIdInput.value = await generateItemId(); // Generuj nowe ID
+            } catch (error) {
+                console.error('Błąd podczas dodawania elementu:', error);
+                alert(`Nie udało się dodać elementu: ${error.message}`);
+            }
+        });
 
-            const newItem = {
-                itemId: document.getElementById('itemId').value,
-                itemName: document.getElementById('itemName').value,
-                description: document.getElementById('description').value,
-                category: document.getElementById('category').value,
-                quantity: parseInt(document.getElementById('quantity').value),
-                unit: document.getElementById('unit').value,
-                location: document.getElementById('location').value,
-                supplier: document.getElementById('supplier').value,
-                reorderLevel: parseInt(document.getElementById('reorderLevel').value),
-                lastUpdated: new Date().toISOString().slice(0, 10) // Aktualna data w formacie YYYY-MM-DD
-            };
+        // Funkcja do usuwania elementu
+        async function deleteItem(itemId) {
+            if (confirm(`Czy na pewno chcesz usunąć element o ID: ${itemId}?`)) {
+                try {
+                    const response = await fetch(`${API_URL}/${itemId}`, {
+                        method: 'DELETE'
+                    });
 
-            try {
-                const response = await fetch(API_URL, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify(newItem)
-                });
+                    if (!response.ok) {
+                        const errorData = await response.json();
+                        throw new Error(`Błąd HTTP! Status: ${response.status}, Wiadomość: ${errorData.message}`);
+                    }
 
-                if (!response.ok) {
-                    const errorData = await response.json();
-                    throw new Error(`Błąd HTTP! Status: ${response.status}, Wiadomość: ${errorData.message}`);
-                }
+                    await fetchInventory(); // Odśwież dane po usunięciu
+                    alert(`Element ${itemId} usunięty pomyślnie!`);
+                } catch (error) {
+                    console.error('Błąd podczas usuwania elementu:', error);
+                    alert(`Nie udało się usunąć elementu: ${error.message}`);
+                }
+            }
+        }
 
-                await fetchInventory(); // Odśwież dane po dodaniu
-                addItemForm.reset(); // Wyczyść formularz
-                alert('Element dodany pomyślnie!');
-            } catch (error) {
-                console.error('Błąd podczas dodawania elementu:', error);
-                alert(`Nie udało się dodać elementu: ${error.message}`);
-            }
-        });
+        // Funkcja do aktualizacji ilości produktu
+        async function updateQuantity(itemId, newQuantity) {
+            try {
+                // Znajdź aktualne dane produktu
+                const item = inventory.find(item => item.itemId === itemId);
+                if (!item) {
+                    throw new Error('Nie znaleziono produktu o podanym ID');
+                }
+                
+                console.log('Aktualizacja produktu:', itemId, 'Nowa ilość:', newQuantity);
+                
+                // Wysyłamy tylko potrzebne pola do aktualizacji
+                const response = await fetch(`${API_URL}/${itemId}`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        quantity: newQuantity,
+                        lastUpdated: new Date().toISOString().slice(0, 10)
+                    })
+                });
+                
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    console.error('Odpowiedź serwera:', errorText);
+                    throw new Error(`Błąd HTTP! Status: ${response.status}`);
+                }
+                
+                await fetchInventory(); // Odśwież dane po aktualizacji
+                return true;
+            } catch (error) {
+                console.error('Błąd podczas aktualizacji ilości:', error);
+                alert(`Nie udało się zaktualizować ilości: ${error.message}`);
+                return false;
+            }
+        }
 
-        // Funkcja do usuwania elementu
-        async function deleteItem(itemId) {
-            if (confirm(`Czy na pewno chcesz usunąć element o ID: ${itemId}?`)) {
-                try {
-                    const response = await fetch(`${API_URL}/${itemId}`, {
-                        method: 'DELETE'
-                    });
+        // Funkcja do generowania pojedynczej etykiety
+        function printSingleLabel(itemId) {
+            const item = inventory.find(i => i.itemId === itemId);
+            if (!item) {
+                alert('Nie znaleziono elementu o podanym ID!');
+                return;
+            }
+            
+            const tempPrintContainer = document.createElement('div');
+            
+            const labelDiv = createLabelElement(item);
+            tempPrintContainer.appendChild(labelDiv);
+            
+            // Użyj nowego kontenera do druku
+            document.body.appendChild(tempPrintContainer);
+            
+            // Generuj kod QR
+            const qrCodeDiv = labelDiv.querySelector('.qr-code');
+            new QRCode(qrCodeDiv, {
+                text: item.itemId,
+                width: 128,
+                height: 128
+            });
 
-                    if (!response.ok) {
-                        const errorData = await response.json();
-                        throw new Error(`Błąd HTTP! Status: ${response.status}, Wiadomość: ${errorData.message}`);
-                    }
+            setTimeout(() => {
+                window.print();
+                tempPrintContainer.remove();
+            }, 200);
+        }
+        
+        // Funkcja pomocnicza do tworzenia elementu etykiety
+        function createLabelElement(item) {
+            const labelDiv = document.createElement('div');
+            labelDiv.classList.add('label-item');
+            
+            const qrCodeDiv = document.createElement('div');
+            qrCodeDiv.classList.add('qr-code');
+            labelDiv.appendChild(qrCodeDiv);
+            
+            const itemNameElem = document.createElement('h3');
+            itemNameElem.textContent = item.itemName;
+            labelDiv.appendChild(itemNameElem);
+            
+            const itemIdElem = document.createElement('p');
+            itemIdElem.textContent = `ID: ${item.itemId}`;
+            labelDiv.appendChild(itemIdElem);
+            
+            const quantityElem = document.createElement('p');
+            quantityElem.textContent = `Ilość: ${item.quantity} ${item.unit || ''}`;
+            labelDiv.appendChild(quantityElem);
+            
+            const locationElem = document.createElement('p');
+            locationElem.textContent = `Lokalizacja: ${item.location || ''}`;
+            labelDiv.appendChild(locationElem);
+            
+            return labelDiv;
+        }
 
-                    await fetchInventory(); // Odśwież dane po usunięciu
-                    alert(`Element ${itemId} usunięty pomyślnie!`);
-                } catch (error) {
-                    console.error('Błąd podczas usuwania elementu:', error);
-                    alert(`Nie udało się usunąć elementu: ${error.message}`);
-                }
-            }
-        }
+        // Funkcja do generowania i drukowania wszystkich etykiet
+        printLabelsBtn.addEventListener('click', function() {
+            if (inventory.length === 0) {
+                alert('Brak elementów do wydrukowania etykiet.');
+                return;
+            }
+            
+            printContainer.innerHTML = '';
+            
+            let promises = [];
+            
+            inventory.forEach(item => {
+                const labelDiv = createLabelElement(item);
+                printContainer.appendChild(labelDiv);
+                
+                // Utwórz Promise dla każdego QR kodu
+                promises.push(new Promise(resolve => {
+                    const qrCodeDiv = labelDiv.querySelector('.qr-code');
+                    new QRCode(qrCodeDiv, {
+                        text: item.itemId,
+                        width: 128,
+                        height: 128,
+                        correctLevel: QRCode.CorrectLevel.H
+                    });
+                    // Zmiana: QR Code generuje SVG lub Canvas. Poczekajmy na DOM
+                    setTimeout(resolve, 50); 
+                }));
+            });
+            
+            // Poczekaj, aż wszystkie QR kody się wygenerują
+            Promise.all(promises).then(() => {
+                window.print();
+            });
+        });
 
-        // Funkcja wyświetlająca szczegóły elementu
-        function showItemDetails(itemId) {
-            const item = inventory.find(i => i.itemId === itemId);
-            if (!item) {
-                alert('Nie znaleziono elementu!');
-                return;
-            }
-            
-            // Tworzymy HTML z informacjami
-            let detailsHTML = `
-                <div class="bg-white p-4 rounded-lg shadow-lg">
-                    <h2 class="text-xl font-bold mb-4">${item.itemName}</h2>
-                    <table class="w-full">
-                        <tr class="border-b">
-                            <th class="text-left py-2 pr-4">ID:</th>
-                            <td>${item.itemId}</td>
-                        </tr>
-            `;
-            
-            if (item._id) {
-                detailsHTML += `
-                    <tr class="border-b">
-                        <th class="text-left py-2 pr-4">MongoDB ID:</th>
-                        <td>${item._id}</td>
-                    </tr>
-                `;
-            }
-            
-            detailsHTML += `
-                <tr class="border-b">
-                    <th class="text-left py-2 pr-4">Opis:</th>
-                    <td>${item.description || '-'}</td>
-                </tr>
-                <tr class="border-b">
-                    <th class="text-left py-2 pr-4">Kategoria:</th>
-                    <td>${item.category || '-'}</td>
-                </tr>
-                <tr class="border-b">
-                    <th class="text-left py-2 pr-4">Ilość:</th>
-                    <td>${item.quantity} ${item.unit || ''}</td>
-                </tr>
-                <tr class="border-b">
-                    <th class="text-left py-2 pr-4">Lokalizacja:</th>
-                    <td>${item.location || '-'}</td>
-                </tr>
-                <tr class="border-b">
-                    <th class="text-left py-2 pr-4">Dostawca:</th>
-                    <td>${item.supplier || '-'}</td>
-                </tr>
-                <tr class="border-b">
-                    <th class="text-left py-2 pr-4">Poziom zamówienia:</th>
-                    <td>${item.reorderLevel || 0}</td>
-                </tr>
-                <tr>
-                    <th class="text-left py-2 pr-4">Ostatnia aktualizacja:</th>
-                    <td>${item.lastUpdated ? new Date(item.lastUpdated).toLocaleDateString() : '-'}</td>
-                </tr>
-            </table>
-            </div>`;
-            
-            // Wyświetl w modalu lub w alercie
-            if (window.innerWidth <= 768) {
-                // Na urządzeniach mobilnych używamy modalu
-                labelPreviewContainer.innerHTML = detailsHTML;
-                labelPreviewModal.style.display = 'block';
-            } else {
-                // Na większych ekranach możemy użyć alertu
-                const detailsWindow = window.open('', '_blank', 'width=600,height=400');
-                detailsWindow.document.write(`
-                    <!DOCTYPE html>
-                    <html>
-                    <head>
-                        <title>Szczegóły elementu: ${item.itemName}</title>
-                        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-                        <script src="https://cdn.tailwindcss.com"></script>
-                    </head>
-                    <body class="p-4">
-                        ${detailsHTML}
-                    </body>
-                    </html>
-                `);
-            }
-        }
+        // Obsługa przycisku eksportu do CSV
+        exportCsvBtn.addEventListener('click', () => {
+            if (inventory.length === 0) {
+                alert('Brak danych do wyeksportowania.');
+                return;
+            }
+            
+            // Pobierz wszystkie klucze jako nagłówki
+            const headers = Object.keys(inventory[0]);
+            
+            // Utwórz wiersz nagłówka CSV
+            let csvContent = headers.join(',') + '\n';
+            
+            // Dodaj wiersze danych
+            inventory.forEach(item => {
+                const row = headers.map(header => {
+                    const value = item[header];
+                    // Zabezpieczenie przed przecinkami w danych
+                    return `"${String(value || '').replace(/"/g, '""')}"`;
+                }).join(',');
+                csvContent += row + '\n';
+            });
+            
+            // Utwórz i pobierz plik
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+            link.setAttribute('download', `magazyn-produkcyjny-${new Date().toISOString().slice(0, 10)}.csv`);
+            link.style.visibility = 'hidden';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        });
 
-        // Funkcja do generowania pojedynczej etykiety
-        function printSingleLabel(itemId) {
-            const item = inventory.find(i => i.itemId === itemId);
-            if (!item) {
-                alert('Nie znaleziono elementu o podanym ID!');
-                return;
-            }
-            
-            printContainer.innerHTML = ''; // Wyczyść kontener
-            
-            const labelDiv = document.createElement('div');
-            labelDiv.classList.add('label-item');
-            
-            // Kontener na kod QR
-            const qrCodeDiv = document.createElement('div');
-            qrCodeDiv.classList.add('qr-code');
-            labelDiv.appendChild(qrCodeDiv);
-            
-            // Dodaj informacje tekstowe
-            const itemNameElem = document.createElement('h3');
-            itemNameElem.textContent = item.itemName;
-            labelDiv.appendChild(itemNameElem);
-            
-            const itemIdElem = document.createElement('p');
-            itemIdElem.textContent = `ID: ${item.itemId}`;
-            labelDiv.appendChild(itemIdElem);
-            
-            const quantityElem = document.createElement('p');
-            quantityElem.textContent = `Ilość: ${item.quantity} ${item.unit || ''}`;
-            labelDiv.appendChild(quantityElem);
-            
-            const locationElem = document.createElement('p');
-            locationElem.textContent = `Lokalizacja: ${item.location || ''}`;
-            labelDiv.appendChild(locationElem);
-            
-            printContainer.appendChild(labelDiv);
-            
-            // Generuj kod QR bezpośrednio w kontenerze
-            new QRCode(qrCodeDiv, {
-                text: item.itemId,
-                width: 128,
-                height: 128,
-                colorDark: "#000000",
-                colorLight: "#ffffff",
-                correctLevel: QRCode.CorrectLevel.H
-            });
-            
-            // Na urządzeniach mobilnych pokazujemy podgląd zamiast drukowania
-            if (window.innerWidth <= 768 || /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)) {
-                // Klonuj etykietę do podglądu
-                labelPreviewContainer.innerHTML = '';
-                const labelClone = labelDiv.cloneNode(true);
-                labelPreviewContainer.appendChild(labelClone);
-                
-                // Pokaż modal z podglądem
-                labelPreviewModal.style.display = 'block';
-            } else {
-                // Na desktopie drukujemy normalnie
-                setTimeout(() => {
-                    window.print();
-                }, 200);
-            }
-        }
+        // Inicjalizacja skanera QR
+        function initQrScanner() {
+            if (html5QrCode) {
+                return; // Skaner już zainicjalizowany
+            }
+            
+            html5QrCode = new Html5Qrcode("scanner-container");
+            
+            const config = { 
+                fps: 10, 
+                qrbox: { width: 250, height: 250 } // Zmiana: Użycie obiektu dla lepszej responsywności
+            };
+            
+            // Obsługa skanowania
+            html5QrCode.start({ facingMode: "environment" }, config, onScanSuccess, onScanFailure);
+        }
+        
+        // Zatrzymanie skanera
+        function stopQrScanner() {
+            if (html5QrCode && html5QrCode.isScanning) {
+                html5QrCode.stop().then(() => {
+                    console.log('Skaner zatrzymany');
+                    html5QrCode = null;
+                }).catch(err => {
+                    console.error('Błąd podczas zatrzymywania skanera:', err);
+                    html5QrCode = null;
+                });
+            } else {
+                html5QrCode = null;
+            }
+        }
 
-        // Funkcja do generowania i drukowania wszystkich etykiet
-        printLabelsBtn.addEventListener('click', function() {
-            printContainer.innerHTML = ''; // Wyczyść kontener przed nowym drukiem
+        // Funkcja wywoływana po pomyślnym zeskanowaniu kodu QR
+        function onScanSuccess(decodedText) {
+            const item = inventory.find(item => item.itemId === decodedText);
+            
+            if (item) {
+                stopQrScanner();
+                scannedItem = item;
+                
+                scannedItemName.textContent = item.itemName;
+                scannedItemId.textContent = `ID: ${item.itemId}`;
+                scannedItemQuantity.textContent = `${item.quantity} ${item.unit || ''}`;
+                
+                scanResult.classList.remove('hidden');
+            } else {
+                alert(`Nie znaleziono produktu o ID: ${decodedText}`);
+            }
+        }
+        
+        function onScanFailure(error) {
+            // Błędy skanowania są częste (np. gdy nie ma kodu QR w widoku), więc nie wyświetlamy alertu
+            console.log('Skanowanie w toku...');
+        }
 
-            if (inventory.length === 0) {
-                alert('Brak elementów do wydrukowania etykiet.');
-                return;
-            }
+        // Obsługa przycisku "Skanuj Kod QR"
+        scanQrBtn.addEventListener('click', function() {
+            html5QrCode = null;
+            scannerModal.style.display = 'block';
+            scanResult.classList.add('hidden');
+            
+            setTimeout(() => {
+                initQrScanner();
+            }, 100);
+        });
+        
+        closeModal.addEventListener('click', function() {
+            scannerModal.style.display = 'none';
+            stopQrScanner();
+        });
+        
+        window.addEventListener('click', function(event) {
+            if (event.target === scannerModal) {
+                scannerModal.style.display = 'none';
+                stopQrScanner();
+            }
+        });
+        
+        // Przyciski dodawania/odejmowania ilości
+        addQuantityBtn.addEventListener('click', function() {
+            quantityOperation = 'add';
+            addQuantityBtn.classList.add('bg-green-700');
+            addQuantityBtn.classList.remove('bg-green-500');
+            subtractQuantityBtn.classList.add('bg-red-500');
+            subtractQuantityBtn.classList.remove('bg-red-700');
+        });
+        
+        subtractQuantityBtn.addEventListener('click', function() {
+            quantityOperation = 'subtract';
+            subtractQuantityBtn.classList.add('bg-red-700');
+            subtractQuantityBtn.classList.remove('bg-red-500');
+            addQuantityBtn.classList.add('bg-green-500');
+            addQuantityBtn.classList.remove('bg-green-700');
+        });
+        
+        // Przycisk aktualizacji stanu magazynowego
+        updateInventoryBtn.addEventListener('click', async function() {
+            if (!scannedItem) {
+                alert('Nie wybrano produktu!');
+                return;
+            }
+            
+            const changeValue = parseInt(quantityChange.value);
+            if (isNaN(changeValue) || changeValue <= 0) {
+                alert('Wprowadź poprawną liczbę sztuk!');
+                return;
+            }
+            
+            let newQuantity;
+            if (quantityOperation === 'add') {
+                newQuantity = scannedItem.quantity + changeValue;
+            } else {
+                newQuantity = Math.max(0, scannedItem.quantity - changeValue);
+            }
+            
+            const success = await updateQuantity(scannedItem.itemId, newQuantity);
+            if (success) {
+                alert(`Stan magazynowy produktu "${scannedItem.itemName}" został zaktualizowany.`);
+                scannerModal.style.display = 'none';
+                stopQrScanner();
+            }
+        });
+        
+        // Event listenery do sortowania tabeli
+        document.querySelectorAll('th.sortable').forEach(header => {
+            header.addEventListener('click', () => {
+                const column = header.dataset.sort;
+                if (sortColumn === column) {
+                    sortDirection = sortDirection === 'asc' ? 'desc' : 'asc';
+                } else {
+                    sortColumn = column;
+                    sortDirection = 'asc';
+                }
 
-            // Używamy przefiltrowanej listy, aby drukować tylko widoczne elementy
-            filteredInventory.forEach(item => {
-                const labelDiv = document.createElement('div');
-                labelDiv.classList.add('label-item');
-                
-                // Kontener na kod QR
-                const qrCodeDiv = document.createElement('div');
-                qrCodeDiv.classList.add('qr-code');
-                labelDiv.appendChild(qrCodeDiv);
-                
-                // Dodaj informacje tekstowe
-                const itemNameElem = document.createElement('h3');
-                itemNameElem.textContent = item.itemName;
-                labelDiv.appendChild(itemNameElem);
-                
-                const itemIdElem = document.createElement('p');
-                itemIdElem.textContent = `ID: ${item.itemId}`;
-                labelDiv.appendChild(itemIdElem);
-                
-                const quantityElem = document.createElement('p');
-                quantityElem.textContent = `Ilość: ${item.quantity} ${item.unit || ''}`;
-                labelDiv.appendChild(quantityElem);
-                
-                const locationElem = document.createElement('p');
-                locationElem.textContent = `Lokalizacja: ${item.location || ''}`;
-                labelDiv.appendChild(locationElem);
-                
-                printContainer.appendChild(labelDiv);
-                
-                // Generuj kod QR bezpośrednio w kontenerze
-                new QRCode(qrCodeDiv, {
-                    text: item.itemId,
-                    width: 128,
-                    height: 128,
-                    colorDark: "#000000",
-                    colorLight: "#ffffff",
-                    correctLevel: QRCode.CorrectLevel.H
-                });
-            });
-            
-            // Na urządzeniach mobilnych pokazujemy podgląd zamiast drukowania
-            if (window.innerWidth <= 768 || /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)) {
-                // Przenosimy tylko pierwszą etykietę do podglądu
-                if (printContainer.children.length > 0) {
-                    labelPreviewContainer.innerHTML = '';
-                    const labelClone = printContainer.children[0].cloneNode(true);
-                    labelPreviewContainer.appendChild(labelClone);
-                    
-                    const totalCount = printContainer.children.length;
-                    if (totalCount > 1) {
-                        const infoText = document.createElement('p');
-                        infoText.className = 'mt-4 text-center text-gray-600';
-                        infoText.textContent = `Oraz ${totalCount - 1} innych etykiet. Użyj komputera, aby wydrukować wszystkie jednocześnie.`;
-                        labelPreviewContainer.appendChild(infoText);
-                    }
-                    
-                    // Pokaż modal z podglądem
-                    labelPreviewModal.style.display = 'block';
-                }
-            } else {
-                // Na desktopie drukujemy normalnie
-                setTimeout(() => {
-                    window.print();
-                }, 500);
-            }
-        });
+                // Zaktualizuj klasy dla ikon sortowania
+                document.querySelectorAll('th.sortable').forEach(h => {
+                    h.classList.remove('asc', 'desc');
+                });
+                header.classList.add(sortDirection);
+                
+                sortAndRenderInventory();
+            });
+        });
 
-        // Inicjalizacja skanera QR
-        function initQrScanner() {
-            if (html5QrCode) {
-                return; // Skaner już zainicjalizowany
-            }
-            
-            html5QrCode = new Html5Qrcode("scanner-container");
-            
-            const config = { 
-                fps: 10, 
-                qrbox: 250 
-            };
-            
-            // Obsługa skanowania
-            html5QrCode.start({ facingMode: "environment" }, config, onScanSuccess, onScanFailure);
-        }
-        
-        // Zatrzymanie skanera
-        function stopQrScanner() {
-            if (html5QrCode && html5QrCode.isScanning) {
-                html5QrCode.stop().then(() => {
-                    console.log('Skaner zatrzymany');
-                    html5QrCode = null; // Ważne: resetuj zmienną, aby umożliwić ponowną inicjalizację
-                }).catch(err => {
-                    console.error('Błąd podczas zatrzymywania skanera:', err);
-                    html5QrCode = null; // Resetuj nawet w przypadku błędu
-                });
-            } else {
-                html5QrCode = null; // Na wszelki wypadek
-            }
-        }
+        // Inicjalizacja: pobierz dane z serwera przy starcie aplikacji
+        fetchInventory();
+        
+        // Generowanie pierwszego ID po załadowaniu
+        generateItemId().then(id => {
+            itemIdInput.value = id;
+        });
 
-        // Funkcja wywoływana po pomyślnym zeskanowaniu kodu QR
-        function onScanSuccess(decodedText) {
-            // Szukamy produktu o ID równym zeskanowanemu kodowi
-            const item = inventory.find(item => item.itemId === decodedText);
-            
-            if (item) {
-                // Zatrzymaj skaner po znalezieniu produktu
-                stopQrScanner();
-                
-                // Zapisz zeskanowany element
-                scannedItem = item;
-                
-                // Wyświetl informacje o produkcie
-                scannedItemName.textContent = item.itemName;
-                scannedItemId.textContent = `ID: ${item.itemId}`;
-                scannedItemQuantity.textContent = `${item.quantity} ${item.unit || ''}`;
-                
-                // Pokaż panel aktualizacji
-                scanResult.classList.remove('hidden');
-            } else {
-                alert(`Nie znaleziono produktu o ID: ${decodedText}`);
-            }
-        }
-        
-        // Funkcja wywoływana w przypadku błędu skanowania
-        function onScanFailure(error) {
-            // Błędy skanowania są częste (np. gdy nie ma kodu QR w widoku), więc nie wyświetlamy alertu
-            console.log('Skanowanie w toku...');
-        }
-
-        // Obsługa sortowania tabeli
-        document.querySelectorAll('th[data-sort]').forEach(th => {
-            th.addEventListener('click', () => {
-                const field = th.getAttribute('data-sort');
-                
-                // Zmień kierunek sortowania jeśli kliknięto tę samą kolumnę
-                if (sortConfig.field === field) {
-                    sortConfig.direction = sortConfig.direction === 'asc' ? 'desc' : 'asc';
-                } else {
-                    sortConfig.field = field;
-                    sortConfig.direction = 'asc';
-                }
-                
-                // Usuń klasy sortowania ze wszystkich nagłówków
-                document.querySelectorAll('th[data-sort]').forEach(header => {
-                    header.classList.remove('sort-asc', 'sort-desc');
-                    header.classList.add('sort-icon');
-                });
-                
-                // Dodaj klasę sortowania do aktualnego nagłówka
-                th.classList.remove('sort-icon');
-                th.classList.add(sortConfig.direction === 'asc' ? 'sort-asc' : 'sort-desc');
-                
-                // Zastosuj sortowanie i przerenderuj tabelę
-                applyFiltersAndSort();
-                renderInventory();
-            });
-        });
-
-        // Obsługa przycisku "Skanuj Kod QR"
-        scanQrBtn.addEventListener('click', function() {
-            // Upewnij się, że skaner jest zresetowany
-            html5QrCode = null;
-            
-            // Pokaż modal skanera
-            scannerModal.style.display = 'block';
-            
-            // Zresetuj panel wyników
-            scanResult.classList.add('hidden');
-            
-            // Inicjalizuj skaner
-            setTimeout(() => {
-                initQrScanner();
-            }, 100); // Małe opóźnienie dla lepszej kompatybilności z przeglądarkami
-        });
-        
-        // Zamknięcie modali
-        closeModal.forEach(btn => {
-            btn.addEventListener('click', function() {
-                scannerModal.style.display = 'none';
-                labelPreviewModal.style.display = 'none';
-                stopQrScanner();
-            });
-        });
-        
-        // Zamknięcie modali po kliknięciu poza obszarem modalu
-        window.addEventListener('click', function(event) {
-            if (event.target === scannerModal) {
-                scannerModal.style.display = 'none';
-                stopQrScanner();
-            }
-            if (event.target === labelPreviewModal) {
-                labelPreviewModal.style.display = 'none';
-            }
-        });
-        
-        // Przycisk zamknięcia podglądu etykiety
-        closePreviewBtn.addEventListener('click', function() {
-            labelPreviewModal.style.display = 'none';
-        });
-        
-        // Przyciski dodawania/odejmowania ilości
-        addQuantityBtn.addEventListener('click', function() {
-            quantityOperation = 'add';
-            addQuantityBtn.classList.add('bg-green-700');
-            addQuantityBtn.classList.remove('bg-green-500');
-            subtractQuantityBtn.classList.add('bg-red-500');
-            subtractQuantityBtn.classList.remove('bg-red-700');
-        });
-        
-        subtractQuantityBtn.addEventListener('click', function() {
-            quantityOperation = 'subtract';
-            subtractQuantityBtn.classList.add('bg-red-700');
-            subtractQuantityBtn.classList.remove('bg-red-500');
-            addQuantityBtn.classList.add('bg-green-500');
-            addQuantityBtn.classList.remove('bg-green-700');
-        });
-        
-        // Przycisk aktualizacji stanu magazynowego
-        updateInventoryBtn.addEventListener('click', async function() {
-            if (!scannedItem) {
-                alert('Nie wybrano produktu!');
-                return;
-            }
-            
-            const changeValue = parseInt(quantityChange.value);
-            if (isNaN(changeValue) || changeValue <= 0) {
-                alert('Wprowadź poprawną liczbę sztuk!');
-                return;
-            }
-            
-            let newQuantity;
-            if (quantityOperation === 'add') {
-                newQuantity = scannedItem.quantity + changeValue;
-            } else {
-                newQuantity = Math.max(0, scannedItem.quantity - changeValue);
-            }
-            
-            try {
-                const success = await updateQuantity(scannedItem.itemId, newQuantity);
-                if (success) {
-                    alert(`Stan magazynowy produktu "${scannedItem.itemName}" został zaktualizowany.`);
-                    scannerModal.style.display = 'none';
-                    stopQrScanner();
-                } else {
-                    // Jeśli aktualizacja online nie powiodła się, zapytaj o tryb offline
-                    if (confirm(`Nie można zaktualizować stanu magazynowego online. Czy chcesz zapisać zmiany lokalnie?`)) {
-                        // Zaktualizuj lokalnie
-                        const itemIndex = inventory.findIndex(i => i.itemId === scannedItem.itemId);
-                        if (itemIndex !== -1) {
-                            inventory[itemIndex].quantity = newQuantity;
-                            inventory[itemIndex].lastUpdated = new Date().toISOString().slice(0, 10);
-                            inventory[itemIndex]._locallyUpdated = true;
-                            renderInventory();
-                            
-                            alert(`Stan magazynowy produktu "${scannedItem.itemName}" został zaktualizowany lokalnie.`);
-                            scannerModal.style.display = 'none';
-                            stopQrScanner();
-                        }
-                    }
-                }
-            } catch (error) {
-                alert(`Wystąpił błąd: ${error.message}`);
-            }
-        });
-
-        // Obsługa filtrowania
-        searchInput.addEventListener('input', () => {
-            applyFiltersAndSort();
-            renderInventory();
-        });
-        
-        filterCategory.addEventListener('change', () => {
-            applyFiltersAndSort();
-            renderInventory();
-        });
-        
-        // Przycisk eksportu CSV
-        exportCsvBtn.addEventListener('click', exportToCSV);
-        
-        // Przycisk ręcznego odświeżenia
-        refreshBtn.addEventListener('click', fetchInventory);
-        
-        // Przycisk generowania ID
-        generateIdBtn.addEventListener('click', function() {
-            document.getElementById('itemId').value = generateUniqueId();
-        });
-
-        // Inicjalizacja: pobierz dane z serwera przy starcie aplikacji
-        fetchInventory();
-        
-        // Ustaw automatyczne odświeżanie co 10 sekund
-        refreshInterval = setInterval(fetchInventory, 10000);
-    </script>
+        // Automatyczne odświeżanie danych co 10 sekund
+        setInterval(fetchInventory, 10000);
+    </script>
 </body>
 </html>
