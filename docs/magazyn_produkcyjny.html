@@ -396,18 +396,34 @@
                 if (!item) {
                     throw new Error('Nie znaleziono produktu o podanym ID');
                 }
-
-                // Wyślij tylko niezbędne dane (zamiast całego obiektu)
+                
+                // Sprawdź, czy potrzebny jest pełny obiekt (zależy od API)
+                // Niektóre API wymagają wysłania pełnego obiektu z aktualizacją
                 const updateData = {
-                    quantity: newQuantity
+                    itemId: item.itemId,
+                    itemName: item.itemName,
+                    description: item.description || "",
+                    category: item.category || "",
+                    quantity: newQuantity,
+                    unit: item.unit || "",
+                    location: item.location || "",
+                    supplier: item.supplier || "",
+                    reorderLevel: item.reorderLevel || 0,
+                    lastUpdated: new Date().toISOString().slice(0, 10)
                 };
 
-                // Wyświetl informacje diagnostyczne w konsoli
                 console.log('Aktualizacja przedmiotu:', itemId);
                 console.log('Nowa ilość:', newQuantity);
                 console.log('Dane wysyłane:', JSON.stringify(updateData));
 
-                // Wyślij żądanie aktualizacji
+                // Najpierw sprawdź, czy przedmiot istnieje
+                const checkResponse = await fetch(`${API_URL}/${itemId}`);
+                
+                if (!checkResponse.ok && checkResponse.status === 404) {
+                    throw new Error(`Przedmiot o ID ${itemId} nie istnieje na serwerze`);
+                }
+
+                // Wyślij żądanie aktualizacji - używamy podstawowego API_URL
                 const response = await fetch(`${API_URL}/${itemId}`, {
                     method: 'PUT',
                     headers: {
@@ -417,15 +433,11 @@
                 });
 
                 if (!response.ok) {
-                    // Próbuj pobrać komunikat błędu jako JSON
-                    let errorMessage;
+                    let errorMessage = `Błąd HTTP! Status: ${response.status}`;
                     try {
                         const errorData = await response.json();
-                        errorMessage = errorData.message || `Błąd HTTP! Status: ${response.status}`;
-                    } catch (e) {
-                        // Jeśli odpowiedź nie jest w formacie JSON
-                        errorMessage = `Błąd HTTP! Status: ${response.status}`;
-                    }
+                        errorMessage = errorData.message || errorMessage;
+                    } catch (e) {}
                     throw new Error(errorMessage);
                 }
 
