@@ -27,7 +27,6 @@
             text-align: left;
             border-bottom: 1px solid #e5e7eb;
         }
-        /* Poprawka: Ukryj kolumny Nazwa i Lokalizacja na małych ekranach */
         @media (max-width: 768px) {
             th:nth-child(2), td:nth-child(2), th:nth-child(4), td:nth-child(4) {
                 display: none;
@@ -67,7 +66,6 @@
         tr:last-child td:first-child { border-bottom-left-radius: 0.75rem; }
         tr:last-child td:last-child { border-bottom-right-radius: 0.75rem; }
     
-        /* Kontener na etykiety do druku (domyślnie poza ekranem) */
         .print-container {
             position: absolute;
             left: -9999px;
@@ -78,7 +76,6 @@
             z-index: -1;
         }
     
-        /* Styl dla wydruku etykiet */
         @media print {
             body > *:not(.print-container) {
                 display: none;
@@ -124,7 +121,6 @@
             }
         }
     
-        /* Style dla modalu skanera */
         .modal {
             display: none;
             position: fixed;
@@ -135,11 +131,14 @@
             background-color: rgba(0,0,0,0.7);
             z-index: 1000;
             overflow: auto;
+            display: flex; /* Zmiana: użyj flexbox do centrowania modalu */
+            justify-content: center;
+            align-items: center;
         }
         
         .modal-content {
             background-color: white;
-            margin: 10% auto;
+            margin: 0;
             padding: 20px;
             border-radius: 8px;
             width: 90%;
@@ -151,6 +150,7 @@
             font-size: 28px;
             font-weight: bold;
             cursor: pointer;
+            line-height: 1; /* Poprawka: poprawia wyrównanie ikony zamknięcia */
         }
         
         #scanner-container {
@@ -183,50 +183,49 @@
         </h1>
         <div class="p-4 md:p-6">
             <h2 class="text-xl md:text-2xl font-semibold mb-4 text-indigo-700">Dodaj Nowy Element</h2>
-            <form id="addItemForm" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-8 p-4 border rounded-lg bg-gray-50">
-                <div>
-                    <label for="itemId" class="block text-sm font-medium text-gray-700">ID Elementu:</label>
-                    <input type="text" id="itemId" name="itemId" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm p-2" readonly>
+            <form id="addItemForm" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-x-12 gap-y-6 mb-8 p-6 border rounded-lg bg-gray-50">
+                <div class="flex flex-col">
+                    <label for="itemId" class="block text-sm font-medium text-gray-700 mb-1">ID Elementu:</label>
+                    <input type="text" id="itemId" name="itemId" required class="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm p-2" readonly>
                 </div>
-                <div>
-                    <label for="itemName" class="block text-sm font-medium text-gray-700">Nazwa Elementu:</label>
-                    <input type="text" id="itemName" name="itemName" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm p-2">
+                <div class="flex flex-col">
+                    <label for="itemName" class="block text-sm font-medium text-gray-700 mb-1">Nazwa Elementu:</label>
+                    <input type="text" id="itemName" name="itemName" required class="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm p-2">
                 </div>
-                <div>
-                    <label for="description" class="block text-sm font-medium text-gray-700">Opis:</label>
-                    <input type="text" id="description" name="description" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm p-2">
+                <div class="flex flex-col">
+                    <label for="description" class="block text-sm font-medium text-gray-700 mb-1">Opis:</label>
+                    <input type="text" id="description" name="description" class="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm p-2">
                 </div>
-                <div>
-                    <label for="category" class="block text-sm font-medium text-gray-700">Kategoria:</label>
-                    <input type="text" id="category" name="category" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm p-2">
+                <div class="flex flex-col">
+                    <label for="category" class="block text-sm font-medium text-gray-700 mb-1">Kategoria:</label>
+                    <input type="text" id="category" name="category" class="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm p-2">
                 </div>
-                <div>
-                    <label for="quantity" class="block text-sm font-medium text-gray-700">Ilość:</label>
-                    <input type="number" id="quantity" name="quantity" required min="0" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm p-2">
+                <div class="flex flex-col">
+                    <label for="quantity" class="block text-sm font-medium text-gray-700 mb-1">Ilość:</label>
+                    <input type="number" id="quantity" name="quantity" required min="0" class="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm p-2">
                 </div>
-                <div>
-                    <label for="unit" class="block text-sm font-medium text-gray-700">Jednostka:</label>
-                    <input type="text" id="unit" name="unit" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm p-2">
+                <div class="flex flex-col">
+                    <label for="unit" class="block text-sm font-medium text-gray-700 mb-1">Jednostka:</label>
+                    <input type="text" id="unit" name="unit" class="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm p-2">
                 </div>
-                <div>
-                    <label for="location" class="block text-sm font-medium text-gray-700">Lokalizacja:</label>
-                    <input type="text" id="location" name="location" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm p-2">
+                <div class="flex flex-col">
+                    <label for="location" class="block text-sm font-medium text-gray-700 mb-1">Lokalizacja:</label>
+                    <input type="text" id="location" name="location" class="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm p-2">
                 </div>
-                <div>
-                    <label for="supplier" class="block text-sm font-medium text-gray-700">Dostawca:</label>
-                    <input type="text" id="supplier" name="supplier" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm p-2">
+                <div class="flex flex-col">
+                    <label for="supplier" class="block text-sm font-medium text-gray-700 mb-1">Dostawca:</label>
+                    <input type="text" id="supplier" name="supplier" class="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm p-2">
                 </div>
-                <div>
-                    <label for="reorderLevel" class="block text-sm font-medium text-gray-700">Poziom Zamówienia:</label>
-                    <input type="number" id="reorderLevel" name="reorderLevel" min="0" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm p-2">
+                <div class="flex flex-col">
+                    <label for="reorderLevel" class="block text-sm font-medium text-gray-700 mb-1">Poziom Zamówienia:</label>
+                    <input type="number" id="reorderLevel" name="reorderLevel" min="0" class="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm p-2">
                 </div>
-                <div class="md:col-span-2 lg:col-span-3 flex justify-end">
-                    <button type="submit" class="inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+                <div class="md:col-span-2 flex justify-end items-end">
+                    <button type="submit" class="inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 w-full md:w-auto">
                         Dodaj Element
                     </button>
                 </div>
             </form>
-
             <h2 class="text-xl md:text-2xl font-semibold mb-4 text-indigo-700">Lista Elementów</h2>
             <div class="flex flex-wrap gap-2 mb-4">
                 <button id="printLabelsBtn" class="inline-flex items-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500">
@@ -266,10 +265,8 @@
             </div>
         </div>
     </div>
-
-        <div id="printContainer" class="print-container"></div>
-
-        <div id="scannerModal" class="modal hidden">
+    <div id="printContainer" class="print-container"></div>
+    <div id="scannerModal" class="modal hidden">
         <div class="modal-content">
             <span class="close">&times;</span>
             <h2 class="text-xl font-semibold mb-4">Skanowanie Kodu QR</h2>
@@ -293,7 +290,7 @@
         </div>
     </div>
 
-        <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
     <script src="https://unpkg.com/html5-qrcode"></script>
 
     <script>
@@ -632,7 +629,7 @@
 
         scanQrBtn.addEventListener('click', function() {
             html5QrCode = null;
-            scannerModal.style.display = 'block';
+            scannerModal.style.display = 'flex'; // Zmiana: Pokaż modal
             scanResult.classList.add('hidden');
             
             setTimeout(() => {
@@ -714,7 +711,6 @@
             });
         });
 
-        // Funkcja init() uruchamiana po załadowaniu strony
         async function init() {
             await fetchInventory();
             itemIdInput.value = await generateItemId();
