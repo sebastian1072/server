@@ -417,39 +417,69 @@
                     throw new Error('Nie znaleziono produktu o podanym ID');
                 }
                 
-                // Sprawdź, czy element ma pole _id (typowe dla MongoDB)
-                const idToUse = item._id || item.itemId;
-                console.log('Używam ID do aktualizacji:', idToUse);
+                console.log('Dane przedmiotu do aktualizacji:', item);
                 
-                // Przygotuj dane do aktualizacji
-                const updateData = {
+                // Stwórz pełny obiekt z zaktualizowaną ilością
+                const fullUpdateData = {
+                    ...item,
                     quantity: newQuantity
                 };
-
-                console.log('Aktualizacja przedmiotu:', itemId);
-                console.log('Nowa ilość:', newQuantity);
-                console.log('Dane wysyłane:', JSON.stringify(updateData));
-
-                // Wyślij żądanie aktualizacji używając odpowiedniego ID
-                const response = await fetch(`${API_URL}/${idToUse}`, {
-                    method: 'PUT',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify(updateData)
-                });
-
-                if (!response.ok) {
-                    let errorMessage = `Błąd HTTP! Status: ${response.status}`;
+                
+                // Sprawdź, czy jest _id z MongoDB
+                if (item._id) {
+                    console.log('Próba aktualizacji używając _id MongoDB:', item._id);
+                    
                     try {
-                        const errorData = await response.json();
-                        errorMessage = errorData.message || errorMessage;
-                    } catch (e) {}
-                    throw new Error(errorMessage);
+                        const response = await fetch(`${API_URL}/update/${item._id}`, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify(fullUpdateData)
+                        });
+                        
+                        if (response.ok) {
+                            await fetchInventory();
+                            return true;
+                        }
+                    } catch (err) {
+                        console.log('Błąd przy próbie 1:', err);
+                    }
                 }
-
-                await fetchInventory(); // Odśwież dane po aktualizacji
-                return true;
+                
+                // Próba 2: Użyj endpointu bez ID, ale z ID w danych
+                console.log('Próba aktualizacji używając endpointu bez ID');
+                try {
+                    const response = await fetch(`${API_URL}/update`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(fullUpdateData)
+                    });
+                    
+                    if (response.ok) {
+                        await fetchInventory();
+                        return true;
+                    }
+                } catch (err) {
+                    console.log('Błąd przy próbie 2:', err);
+                }
+                
+                // Próba 3: Standardowy RESTful PUT z itemId
+                console.log('Próba standardowej aktualizacji PUT z itemId');
+                try {
+                    const response = await fetch(`${API_URL}/${itemId}`, {
+                        method: 'PUT',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(fullUpdateData)
+                    });
+                    
+                    if (response.ok) {
+                        await fetchInventory();
+                        return true;
+                    }
+                } catch (err) {
+                    console.log('Błąd przy próbie 3:', err);
+                }
+                
+                throw new Error('Żadna z metod aktualizacji nie powiodła się');
             } catch (error) {
                 console.error('Błąd podczas aktualizacji ilości:', error);
                 alert(`Nie udało się zaktualizować ilości: ${error.message}`);
