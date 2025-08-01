@@ -69,36 +69,25 @@
                 z-index: auto;
             }
             .label-item {
-                display: flex; /* Użyj flexbox do ułożenia elementów */
-                align-items: center; /* Wyśrodkuj w pionie */
-                width: 9cm; /* Szerokość etykiety */
-                height: 5cm; /* Wysokość etykiety */
-                border: 1px solid #333;
+                display: inline-block;
+                width: 9cm; /* Szerokość etykiety, np. 9cm */
+                height: 5cm; /* Wysokość etykiety, np. 5cm */
+                border: 1px solid #ccc;
                 margin: 0.5cm;
                 padding: 0.5cm;
                 box-sizing: border-box;
-                page-break-inside: avoid; /* Zapobiega łamaniu etykiety */
-                overflow: hidden; /* Ukryj to, co się nie mieści */
+                text-align: center;
+                page-break-inside: avoid; /* Zapobiega łamaniu etykiety na dwie strony */
             }
-            .label-item .qr-code-container {
-                flex-shrink: 0; /* Zapobiegaj kurczeniu się kodu QR */
-                margin-right: 0.5cm; /* Odstęp między kodem a tekstem */
-            }
-            .label-item img {
-                width: 3.5cm !important; /* Zmniejszony kod QR */
-                height: 3.5cm !important;
-                display: block;
-            }
-            .label-item .label-text {
-                display: flex;
-                flex-direction: column;
-                justify-content: center;
-                text-align: left;
+            .label-item img { /* Zmieniono z canvas na img */
+                width: 4cm !important;
+                height: 4cm !important;
+                margin: 0 auto;
+                display: block; /* Upewnij się, że obraz jest blokowy dla centrowania */
             }
             .label-item h3 {
                 font-size: 14px;
-                font-weight: bold;
-                margin: 2px 0;
+                margin: 5px 0;
             }
             .label-item p {
                 font-size: 12px;
@@ -203,7 +192,8 @@
         const printContainer = document.getElementById('printContainer');
 
         // Adres URL Twojego serwera Express
-        const API_URL = 'http://localhost:3000/api/inventory';
+        // PAMIĘTAJ, ABY ZASTĄPIĆ TEN ADRES PUBLICZNYM ADRESEM URL TWOJEGO SERWERA VPS
+        const API_URL = 'http://twoj_adres_ip_vps:3000/api/inventory';
 
         let inventory = []; // Tablica do przechowywania elementów magazynowych
 
@@ -232,9 +222,8 @@
                     <td class="px-6 py-4 whitespace-nowrap">${item.itemName}</td>
                     <td class="px-6 py-4 whitespace-nowrap">${item.quantity} ${item.unit || ''}</td>
                     <td class="px-6 py-4 whitespace-nowrap">${item.location || ''}</td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                        <button onclick="printSingleLabel('${item.itemId}')" class="text-indigo-600 hover:text-indigo-900">Drukuj</button>
-                        <button onclick="deleteItem('${item.itemId}')" class="text-red-600 hover:text-red-900 ml-4">Usuń</button>
+                    <td class="px-6 py-4 whitespace-nowrap">
+                        <button onclick="deleteItem('${item.itemId}')" class="text-red-600 hover:text-red-900 ml-2">Usuń</button>
                     </td>
                 `;
             });
@@ -302,68 +291,7 @@
             }
         }
 
-        // Funkcja do generowania pojedynczej etykiety
-        function generateLabel(item) {
-            const labelDiv = document.createElement('div');
-            labelDiv.classList.add('label-item');
-
-            // Kontener na kod QR
-            const qrCodeContainer = document.createElement('div');
-            qrCodeContainer.classList.add('qr-code-container');
-            
-            // Kontener na tekst
-            const textContainer = document.createElement('div');
-            textContainer.classList.add('label-text');
-
-            const itemNameElem = document.createElement('h3');
-            itemNameElem.textContent = item.itemName;
-            textContainer.appendChild(itemNameElem);
-
-            const itemIdElem = document.createElement('p');
-            itemIdElem.textContent = `ID: ${item.itemId}`;
-            textContainer.appendChild(itemIdElem);
-
-            const quantityElem = document.createElement('p');
-            quantityElem.textContent = `Ilość: ${item.quantity} ${item.unit || ''}`;
-            textContainer.appendChild(quantityElem);
-
-            const locationElem = document.createElement('p');
-            locationElem.textContent = `Lokalizacja: ${item.location || ''}`;
-            textContainer.appendChild(locationElem);
-
-            labelDiv.appendChild(qrCodeContainer);
-            labelDiv.appendChild(textContainer);
-            
-            printContainer.appendChild(labelDiv);
-
-            // Generuj kod QR
-            new QRCode(qrCodeContainer, {
-                text: item.itemId,
-                width: 128,
-                height: 128,
-                colorDark: "#000000",
-                colorLight: "#ffffff",
-                correctLevel: QRCode.CorrectLevel.H
-            });
-        }
-
-        // Funkcja do drukowania pojedynczej etykiety
-        function printSingleLabel(itemId) {
-            const item = inventory.find(i => i.itemId === itemId);
-            if (!item) {
-                alert('Nie znaleziono elementu!');
-                return;
-            }
-
-            printContainer.innerHTML = ''; // Wyczyść kontener
-            generateLabel(item); // Wygeneruj jedną etykietę
-
-            setTimeout(() => {
-                window.print();
-            }, 500);
-        }
-
-        // Funkcja do generowania i drukowania wszystkich etykiet
+        // Funkcja do generowania i drukowania etykiet
         printLabelsBtn.addEventListener('click', function() {
             printContainer.innerHTML = ''; // Wyczyść kontener przed nowym drukiem
 
@@ -372,15 +300,73 @@
                 return;
             }
 
-            // Generuj etykiety dla każdego elementu
-            inventory.forEach(item => {
-                generateLabel(item);
+            // Użyj Promise.all, aby poczekać na wyrenderowanie wszystkich kodów QR
+            const qrPromises = inventory.map(item => {
+                return new Promise(resolve => {
+                    const labelDiv = document.createElement('div');
+                    labelDiv.classList.add('label-item');
+
+                    // Tworzenie tymczasowego elementu canvas dla kodu QR
+                    const tempQrCanvas = document.createElement('canvas');
+                    tempQrCanvas.width = 128;
+                    tempQrCanvas.height = 128;
+
+                    // Generowanie kodu QR na tymczasowym canvasie
+                    // Użyj setTimeout, aby dać czas na inicjalizację QRCode i rysowanie
+                    setTimeout(() => {
+                        new QRCode(tempQrCanvas, {
+                            text: item.itemId,
+                            width: 128,
+                            height: 128,
+                            colorDark : "#000000",
+                            colorLight : "#ffffff",
+                            correctLevel : QRCode.CorrectLevel.H
+                        });
+
+                        // Konwersja canvasa na obraz (data URL) po krótkim opóźnieniu
+                        // To jest kluczowe, aby obraz był gotowy do druku
+                        setTimeout(() => {
+                            const qrImg = document.createElement('img');
+                            qrImg.src = tempQrCanvas.toDataURL(); // Pobierz obraz z canvasa
+                            qrImg.alt = `Kod QR dla ${item.itemName}`;
+                            qrImg.style.width = '4cm'; // Ustaw rozmiar dla obrazu QR
+                            qrImg.style.height = '4cm';
+                            labelDiv.appendChild(qrImg); // Dodaj obraz do etykiety
+
+                            const itemNameElem = document.createElement('h3');
+                            itemNameElem.textContent = item.itemName;
+                            labelDiv.appendChild(itemNameElem);
+
+                            const itemIdElem = document.createElement('p');
+                            itemIdElem.textContent = `ID: ${item.itemId}`;
+                            labelDiv.appendChild(itemIdElem);
+
+                            const quantityElem = document.createElement('p');
+                            quantityElem.textContent = `Ilość: ${item.quantity} ${item.unit || ''}`;
+                            labelDiv.appendChild(quantityElem);
+
+                            const locationElem = document.createElement('p'); 
+                            // Upewnij się, że item.location ma wartość, w przeciwnym razie wyświetl pusty ciąg
+                            locationElem.textContent = `Lokalizacja: ${item.location || ''}`;
+                            labelDiv.appendChild(locationElem);
+
+                            printContainer.appendChild(labelDiv);
+                            resolve(); // Rozwiąż Promise po dodaniu etykiety
+                        }, 100); // Małe opóźnienie na wyrenderowanie QR na canvasie przed konwersją
+                    }, 50); // Dodatkowe małe opóźnienie dla inicjalizacji QRCode
+                });
             });
 
-            // Użyj opóźnienia, aby dać przeglądarce czas na wyrenderowanie wszystkich kodów QR
-            setTimeout(() => {
-                window.print(); // Wywołaj okno drukowania
-            }, 500); // Opóźnienie, aby zapewnić, że wszystko jest gotowe
+            // Poczekaj, aż wszystkie Promise'y zostaną rozwiązane (wszystkie QR kody wygenerowane jako obrazy)
+            Promise.all(qrPromises).then(() => {
+                // Użyj większego opóźnienia, aby przeglądarka miała czas na wyrenderowanie wszystkich obrazów
+                setTimeout(() => {
+                    window.print(); // Wywołaj okno drukowania
+                }, 500); // Zmniejszono opóźnienie, ponieważ obrazy są bardziej stabilne
+            }).catch(error => {
+                console.error("Błąd podczas generowania etykiet do druku:", error);
+                alert("Wystąpił błąd podczas przygotowywania etykiet do druku.");
+            });
         });
 
         // Inicjalizacja: pobierz dane z serwera przy starcie aplikacji
