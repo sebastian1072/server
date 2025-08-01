@@ -197,6 +197,39 @@
 
         let inventory = []; // Tablica do przechowywania elementów magazynowych
 
+        // Funkcja diagnostyczna
+        async function testConnection() {
+            try {
+                console.log("Testowanie połączenia z API...");
+                const response = await fetch(API_URL, {
+                    method: 'GET',
+                    mode: 'cors', // Wymusza użycie CORS
+                    headers: {
+                        'Accept': 'application/json'
+                    }
+                });
+                console.log("Status odpowiedzi:", response.status);
+                if (!response.ok) {
+                    throw new Error(`HTTP error! Status: ${response.status}`);
+                }
+                const data = await response.json();
+                console.log("Pobrane dane:", data);
+                return true;
+            } catch (error) {
+                console.error("Błąd połączenia:", error);
+                return false;
+            }
+        }
+        
+        // Testuj połączenie przy starcie
+        testConnection().then(success => {
+            if (success) {
+                console.log("Połączenie z API działa prawidłowo!");
+            } else {
+                console.error("Nie można połączyć się z API. Sprawdź konsolę.");
+            }
+        });
+
         // Funkcja do pobierania danych z serwera
         async function fetchInventory() {
             try {
