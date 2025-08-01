@@ -26,14 +26,14 @@
             padding: 1rem 1.5rem;
             text-align: left;
             border-bottom: 1px solid #e5e7eb;
-            /* Zmiana: Ukryj kolumny na małych ekranach, oprócz kluczowych */
-            @media (max-width: 768px) {
-                &:nth-child(2), &:nth-child(4) {
-                    display: none;
-                }
-                th, td {
-                    padding: 0.75rem 1rem;
-                }
+        }
+        /* Poprawka: Ukryj kolumny Nazwa i Lokalizacja na małych ekranach */
+        @media (max-width: 768px) {
+            th:nth-child(2), td:nth-child(2), th:nth-child(4), td:nth-child(4) {
+                display: none;
+            }
+            th, td {
+                padding: 0.75rem 1rem;
             }
         }
         th {
@@ -42,7 +42,7 @@
             font-weight: 600;
             text-transform: uppercase;
             letter-spacing: 0.05em;
-            cursor: pointer; /* Zmiana: Dodanie kursora na nagłówkach */
+            cursor: pointer;
         }
         th.sortable:after {
             content: '';
@@ -66,7 +66,7 @@
         th:last-child { border-top-right-radius: 0.75rem; }
         tr:last-child td:first-child { border-bottom-left-radius: 0.75rem; }
         tr:last-child td:last-child { border-bottom-right-radius: 0.75rem; }
-
+    
         /* Kontener na etykiety do druku (domyślnie poza ekranem) */
         .print-container {
             position: absolute;
@@ -77,7 +77,7 @@
             overflow: hidden;
             z-index: -1;
         }
-
+    
         /* Styl dla wydruku etykiet */
         @media print {
             body > *:not(.print-container) {
@@ -87,7 +87,7 @@
                 position: static;
                 left: auto;
                 top: auto;
-                display: flex; /* Zmiana: Użyj flexbox do układu etykiet */
+                display: flex;
                 flex-wrap: wrap;
                 align-content: flex-start;
                 width: 100%;
@@ -123,7 +123,7 @@
                 margin: 2px 0;
             }
         }
-
+    
         /* Style dla modalu skanera */
         .modal {
             display: none;
@@ -142,7 +142,7 @@
             margin: 10% auto;
             padding: 20px;
             border-radius: 8px;
-            width: 90%; /* Zmiana: Ustawienie na 90% na małych ekranach */
+            width: 90%;
             max-width: 500px;
         }
         
@@ -186,7 +186,8 @@
             <form id="addItemForm" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-8 p-4 border rounded-lg bg-gray-50">
                 <div>
                     <label for="itemId" class="block text-sm font-medium text-gray-700">ID Elementu:</label>
-                    <input type="text" id="itemId" name="itemId" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm p-2" readonly>                 </div>
+                    <input type="text" id="itemId" name="itemId" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm p-2" readonly>
+                </div>
                 <div>
                     <label for="itemName" class="block text-sm font-medium text-gray-700">Nazwa Elementu:</label>
                     <input type="text" id="itemName" name="itemName" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm p-2">
@@ -238,7 +239,8 @@
                     <i class="fa-solid fa-file-csv mr-2"></i>Eksportuj do CSV
                 </button>
             </div>
-            <div class="overflow-x-auto">                 <table class="min-w-full divide-y divide-gray-200">
+            <div class="overflow-x-auto">
+                <table class="min-w-full divide-y divide-gray-200">
                     <thead>
                         <tr>
                             <th class="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider sortable" data-sort="itemId">
@@ -267,7 +269,7 @@
 
         <div id="printContainer" class="print-container"></div>
 
-        <div id="scannerModal" class="modal">
+        <div id="scannerModal" class="modal hidden">
         <div class="modal-content">
             <span class="close">&times;</span>
             <h2 class="text-xl font-semibold mb-4">Skanowanie Kodu QR</h2>
@@ -301,7 +303,7 @@
         const printLabelsBtn = document.getElementById('printLabelsBtn');
         const printContainer = document.getElementById('printContainer');
         const scanQrBtn = document.getElementById('scanQrBtn');
-        const exportCsvBtn = document.getElementById('exportCsvBtn'); // Nowy przycisk do CSV
+        const exportCsvBtn = document.getElementById('exportCsvBtn');
         const scannerModal = document.getElementById('scannerModal');
         const closeModal = document.querySelector('.close');
         const scanResult = document.getElementById('scan-result');
@@ -313,28 +315,23 @@
         const subtractQuantityBtn = document.getElementById('subtract-quantity');
         const updateInventoryBtn = document.getElementById('update-inventory');
 
-        // Adres URL Twojego serwera Express
         const API_URL = 'https://serwer.sebaruman.pl/api/inventory';
 
-        let inventory = []; // Tablica do przechowywania elementów magazynowych
-        let scannedItem = null; // Aktualnie zeskanowany element
-        let quantityOperation = 'add'; // Domyślna operacja: 'add' lub 'subtract'
-        let html5QrCode = null; // Referencja do skanera QR
+        let inventory = [];
+        let scannedItem = null;
+        let quantityOperation = 'add';
+        let html5QrCode = null;
         
-        // Zmienne do sortowania
         let sortColumn = 'itemId';
         let sortDirection = 'asc';
 
-        // Funkcja do generowania unikalnego, chronologicznego ID
         async function generateItemId() {
             const now = new Date();
-            const timestamp = now.getTime(); // Czas w milisekundach jako podstawa
-            const randomPart = Math.floor(Math.random() * 1000); // Losowa część
-            
+            const timestamp = now.getTime();
+            const randomPart = Math.floor(Math.random() * 1000);
             return `ITEM-${timestamp}-${randomPart}`;
         }
 
-        // Funkcja do pobierania danych z serwera
         async function fetchInventory() {
             try {
                 const response = await fetch(API_URL);
@@ -342,14 +339,12 @@
                     throw new Error(`Błąd HTTP! Status: ${response.status}`);
                 }
                 inventory = await response.json();
-                sortAndRenderInventory(); // Odśwież tabelę po pobraniu danych
+                sortAndRenderInventory();
             } catch (error) {
                 console.error('Błąd podczas pobierania danych z serwera:', error);
-                // alert('Nie udało się pobrać danych magazynowych. Upewnij się, że serwer działa.'); // Wyłączono alert, aby nie przeszkadzał w odświeżaniu
             }
         }
         
-        // Funkcja do sortowania i renderowania
         function sortAndRenderInventory() {
             inventory.sort((a, b) => {
                 let valA = a[sortColumn];
@@ -365,9 +360,8 @@
             renderInventory();
         }
 
-        // Funkcja do renderowania (wyświetlania) elementów w tabeli
         function renderInventory() {
-            inventoryTableBody.innerHTML = ''; // Wyczyść tabelę przed ponownym renderowaniem
+            inventoryTableBody.innerHTML = '';
             inventory.forEach((item, index) => {
                 const row = inventoryTableBody.insertRow();
                 row.innerHTML = `
@@ -384,7 +378,6 @@
             });
         }
 
-        // Funkcja diagnostyczna - pokaż szczegóły elementu
         function showItemDetails(itemId) {
             const item = inventory.find(i => i.itemId === itemId);
             if (!item) {
@@ -402,9 +395,8 @@
             alert(details);
         }
 
-        // Funkcja do dodawania nowego elementu
         addItemForm.addEventListener('submit', async function(event) {
-            event.preventDefault(); // Zapobiegaj domyślnej wysyłce formularza
+            event.preventDefault();
 
             const newItem = {
                 itemId: await generateItemId(),
@@ -416,15 +408,13 @@
                 location: document.getElementById('location').value,
                 supplier: document.getElementById('supplier').value,
                 reorderLevel: parseInt(document.getElementById('reorderLevel').value),
-                lastUpdated: new Date().toISOString().slice(0, 10) // Aktualna data w formacie YYYY-MM-DD
+                lastUpdated: new Date().toISOString().slice(0, 10)
             };
 
             try {
                 const response = await fetch(API_URL, {
                     method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
+                    headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(newItem)
                 });
 
@@ -433,30 +423,27 @@
                     throw new Error(`Błąd HTTP! Status: ${response.status}, Wiadomość: ${errorData.message}`);
                 }
 
-                await fetchInventory(); // Odśwież dane po dodaniu
-                addItemForm.reset(); // Wyczyść formularz
+                await fetchInventory();
+                addItemForm.reset();
                 alert('Element dodany pomyślnie!');
-                itemIdInput.value = await generateItemId(); // Generuj nowe ID
+                itemIdInput.value = await generateItemId();
             } catch (error) {
                 console.error('Błąd podczas dodawania elementu:', error);
                 alert(`Nie udało się dodać elementu: ${error.message}`);
             }
         });
 
-        // Funkcja do usuwania elementu
         async function deleteItem(itemId) {
             if (confirm(`Czy na pewno chcesz usunąć element o ID: ${itemId}?`)) {
                 try {
-                    const response = await fetch(`${API_URL}/${itemId}`, {
-                        method: 'DELETE'
-                    });
+                    const response = await fetch(`${API_URL}/${itemId}`, { method: 'DELETE' });
 
                     if (!response.ok) {
                         const errorData = await response.json();
                         throw new Error(`Błąd HTTP! Status: ${response.status}, Wiadomość: ${errorData.message}`);
                     }
 
-                    await fetchInventory(); // Odśwież dane po usunięciu
+                    await fetchInventory();
                     alert(`Element ${itemId} usunięty pomyślnie!`);
                 } catch (error) {
                     console.error('Błąd podczas usuwania elementu:', error);
@@ -465,10 +452,8 @@
             }
         }
 
-        // Funkcja do aktualizacji ilości produktu
         async function updateQuantity(itemId, newQuantity) {
             try {
-                // Znajdź aktualne dane produktu
                 const item = inventory.find(item => item.itemId === itemId);
                 if (!item) {
                     throw new Error('Nie znaleziono produktu o podanym ID');
@@ -476,16 +461,10 @@
                 
                 console.log('Aktualizacja produktu:', itemId, 'Nowa ilość:', newQuantity);
                 
-                // Wysyłamy tylko potrzebne pola do aktualizacji
                 const response = await fetch(`${API_URL}/${itemId}`, {
                     method: 'PUT',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({
-                        quantity: newQuantity,
-                        lastUpdated: new Date().toISOString().slice(0, 10)
-                    })
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ quantity: newQuantity, lastUpdated: new Date().toISOString().slice(0, 10) })
                 });
                 
                 if (!response.ok) {
@@ -494,7 +473,7 @@
                     throw new Error(`Błąd HTTP! Status: ${response.status}`);
                 }
                 
-                await fetchInventory(); // Odśwież dane po aktualizacji
+                await fetchInventory();
                 return true;
             } catch (error) {
                 console.error('Błąd podczas aktualizacji ilości:', error);
@@ -503,7 +482,6 @@
             }
         }
 
-        // Funkcja do generowania pojedynczej etykiety
         function printSingleLabel(itemId) {
             const item = inventory.find(i => i.itemId === itemId);
             if (!item) {
@@ -516,16 +494,10 @@
             const labelDiv = createLabelElement(item);
             tempPrintContainer.appendChild(labelDiv);
             
-            // Użyj nowego kontenera do druku
             document.body.appendChild(tempPrintContainer);
             
-            // Generuj kod QR
             const qrCodeDiv = labelDiv.querySelector('.qr-code');
-            new QRCode(qrCodeDiv, {
-                text: item.itemId,
-                width: 128,
-                height: 128
-            });
+            new QRCode(qrCodeDiv, { text: item.itemId, width: 128, height: 128 });
 
             setTimeout(() => {
                 window.print();
@@ -533,7 +505,6 @@
             }, 200);
         }
         
-        // Funkcja pomocnicza do tworzenia elementu etykiety
         function createLabelElement(item) {
             const labelDiv = document.createElement('div');
             labelDiv.classList.add('label-item');
@@ -561,7 +532,6 @@
             return labelDiv;
         }
 
-        // Funkcja do generowania i drukowania wszystkich etykiet
         printLabelsBtn.addEventListener('click', function() {
             if (inventory.length === 0) {
                 alert('Brak elementów do wydrukowania etykiet.');
@@ -576,50 +546,35 @@
                 const labelDiv = createLabelElement(item);
                 printContainer.appendChild(labelDiv);
                 
-                // Utwórz Promise dla każdego QR kodu
                 promises.push(new Promise(resolve => {
                     const qrCodeDiv = labelDiv.querySelector('.qr-code');
-                    new QRCode(qrCodeDiv, {
-                        text: item.itemId,
-                        width: 128,
-                        height: 128,
-                        correctLevel: QRCode.CorrectLevel.H
-                    });
-                    // Zmiana: QR Code generuje SVG lub Canvas. Poczekajmy na DOM
+                    new QRCode(qrCodeDiv, { text: item.itemId, width: 128, height: 128, correctLevel: QRCode.CorrectLevel.H });
                     setTimeout(resolve, 50); 
                 }));
             });
             
-            // Poczekaj, aż wszystkie QR kody się wygenerują
             Promise.all(promises).then(() => {
                 window.print();
             });
         });
 
-        // Obsługa przycisku eksportu do CSV
         exportCsvBtn.addEventListener('click', () => {
             if (inventory.length === 0) {
                 alert('Brak danych do wyeksportowania.');
                 return;
             }
             
-            // Pobierz wszystkie klucze jako nagłówki
             const headers = Object.keys(inventory[0]);
-            
-            // Utwórz wiersz nagłówka CSV
             let csvContent = headers.join(',') + '\n';
             
-            // Dodaj wiersze danych
             inventory.forEach(item => {
                 const row = headers.map(header => {
                     const value = item[header];
-                    // Zabezpieczenie przed przecinkami w danych
                     return `"${String(value || '').replace(/"/g, '""')}"`;
                 }).join(',');
                 csvContent += row + '\n';
             });
             
-            // Utwórz i pobierz plik
             const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
             const link = document.createElement('a');
             link.href = URL.createObjectURL(blob);
@@ -630,24 +585,16 @@
             document.body.removeChild(link);
         });
 
-        // Inicjalizacja skanera QR
         function initQrScanner() {
-            if (html5QrCode) {
-                return; // Skaner już zainicjalizowany
-            }
+            if (html5QrCode) return;
             
             html5QrCode = new Html5Qrcode("scanner-container");
             
-            const config = { 
-                fps: 10, 
-                qrbox: { width: 250, height: 250 } // Zmiana: Użycie obiektu dla lepszej responsywności
-            };
+            const config = { fps: 10, qrbox: { width: 250, height: 250 } };
             
-            // Obsługa skanowania
             html5QrCode.start({ facingMode: "environment" }, config, onScanSuccess, onScanFailure);
         }
         
-        // Zatrzymanie skanera
         function stopQrScanner() {
             if (html5QrCode && html5QrCode.isScanning) {
                 html5QrCode.stop().then(() => {
@@ -662,7 +609,6 @@
             }
         }
 
-        // Funkcja wywoływana po pomyślnym zeskanowaniu kodu QR
         function onScanSuccess(decodedText) {
             const item = inventory.find(item => item.itemId === decodedText);
             
@@ -681,11 +627,9 @@
         }
         
         function onScanFailure(error) {
-            // Błędy skanowania są częste (np. gdy nie ma kodu QR w widoku), więc nie wyświetlamy alertu
             console.log('Skanowanie w toku...');
         }
 
-        // Obsługa przycisku "Skanuj Kod QR"
         scanQrBtn.addEventListener('click', function() {
             html5QrCode = null;
             scannerModal.style.display = 'block';
@@ -708,7 +652,6 @@
             }
         });
         
-        // Przyciski dodawania/odejmowania ilości
         addQuantityBtn.addEventListener('click', function() {
             quantityOperation = 'add';
             addQuantityBtn.classList.add('bg-green-700');
@@ -725,7 +668,6 @@
             addQuantityBtn.classList.remove('bg-green-700');
         });
         
-        // Przycisk aktualizacji stanu magazynowego
         updateInventoryBtn.addEventListener('click', async function() {
             if (!scannedItem) {
                 alert('Nie wybrano produktu!');
@@ -753,7 +695,6 @@
             }
         });
         
-        // Event listenery do sortowania tabeli
         document.querySelectorAll('th.sortable').forEach(header => {
             header.addEventListener('click', () => {
                 const column = header.dataset.sort;
@@ -764,7 +705,6 @@
                     sortDirection = 'asc';
                 }
 
-                // Zaktualizuj klasy dla ikon sortowania
                 document.querySelectorAll('th.sortable').forEach(h => {
                     h.classList.remove('asc', 'desc');
                 });
@@ -774,16 +714,14 @@
             });
         });
 
-        // Inicjalizacja: pobierz dane z serwera przy starcie aplikacji
-        fetchInventory();
-        
-        // Generowanie pierwszego ID po załadowaniu
-        generateItemId().then(id => {
-            itemIdInput.value = id;
-        });
+        // Funkcja init() uruchamiana po załadowaniu strony
+        async function init() {
+            await fetchInventory();
+            itemIdInput.value = await generateItemId();
+            setInterval(fetchInventory, 10000);
+        }
 
-        // Automatyczne odświeżanie danych co 10 sekund
-        setInterval(fetchInventory, 10000);
+        window.onload = init;
     </script>
 </body>
 </html>
