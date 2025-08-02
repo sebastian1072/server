@@ -82,6 +82,8 @@
             color: white;
             font-weight: 600;
             transition: background-color 0.2s ease, transform 0.2s ease;
+            position: relative;
+            overflow: hidden;
         }
         .btn:hover {
             transform: translateY(-2px);
@@ -158,10 +160,11 @@
         }
 
         @media (max-width: 768px) {
-            th:nth-child(2), td:nth-child(2), th:nth-child(4), td:nth-child(4) {
-                display: none;
+            th:nth-child(4), td:nth-child(4) {
+                display: none; /* Ukrywamy kolumnę Lokalizacja na małych ekranach */
             }
         }
+
         .modal {
             display: none;
             position: fixed;
@@ -219,7 +222,15 @@
             to { opacity: 1; }
         }
 
-        /* Drukowanie - kluczowa poprawka */
+        .print-container {
+            position: absolute;
+            left: -9999px;
+            top: 0;
+            width: 100%;
+            height: auto;
+            overflow: hidden;
+            z-index: -1;
+        }
         @media print {
             body > *:not(.print-container) {
                 display: none;
@@ -263,6 +274,21 @@
                 font-size: 12px;
                 margin: 2px 0;
             }
+        }
+        
+        .loading-animation {
+            pointer-events: none;
+            opacity: 0.7;
+        }
+        .loading-animation::after {
+            content: ' ...';
+            display: inline-block;
+            animation: loading-dots 1s infinite;
+        }
+        @keyframes loading-dots {
+            0% { content: ' .'; }
+            33% { content: ' ..'; }
+            66% { content: ' ...'; }
         }
     </style>
 </head>
@@ -368,6 +394,14 @@
         </div>
     </div>
 
+    <div id="imageModal" class="modal">
+        <div class="modal-content" style="max-width: 600px; text-align: center;">
+            <span class="close-btn" id="closeImageModal">&times;</span>
+            <h2 id="imageModalTitle">Podgląd zdjęcia</h2>
+            <img id="productImage" src="" alt="Zdjęcie produktu" style="max-width: 100%; height: auto; border-radius: 8px; margin-top: 15px;">
+        </div>
+    </div>
+
     <script>
         const addItemForm = document.getElementById('addItemForm');
         const itemIdInput = document.getElementById('itemId');
@@ -388,6 +422,9 @@
         const updateInventoryBtn = document.getElementById('update-inventory');
         const searchBox = document.getElementById('searchBox');
         const lowStockAlert = document.getElementById('lowStockAlert');
+        const imageModal = document.getElementById('imageModal');
+        const closeImageModalBtn = document.getElementById('closeImageModal');
+        const productImage = document.getElementById('productImage');
 
         const API_URL = 'https://serwer.sebaruman.pl/api/inventory';
         let inventory = [];
@@ -457,10 +494,31 @@
                         <button onclick="printSingleLabel('${item.itemId}')" class="btn btn-success" title="Drukuj"><i class="fa-solid fa-print"></i></button>
                         <button onclick="showItemDetails('${item.itemId}')" class="btn btn-info" title="Szczegóły"><i class="fa-solid fa-circle-info"></i></button>
                         <button onclick="deleteItem('${item.itemId}')" class="btn btn-danger" title="Usuń"><i class="fa-solid fa-trash"></i></button>
+                        <button onclick="showImagePreview('${item.itemName}')" class="btn btn-secondary" title="Podgląd zdjęcia"><i class="fa-solid fa-image"></i></button>
                     </td>
                 `;
             });
         }
+        
+        async function showImagePreview(itemName) {
+            const imageQuery = encodeURIComponent(itemName);
+            const imageUrl = `https://serwer.sebaruman.pl/api/image?q=${imageQuery}`;
+            
+            productImage.src = imageUrl;
+            productImage.alt = `Zdjęcie produktu: ${itemName}`;
+            document.getElementById('imageModalTitle').textContent = `Podgląd: ${itemName}`;
+            imageModal.style.display = 'flex';
+        }
+
+        closeImageModalBtn.addEventListener('click', () => {
+            imageModal.style.display = 'none';
+        });
+
+        window.addEventListener('click', (event) => {
+            if (event.target === imageModal) {
+                imageModal.style.display = 'none';
+            }
+        });
 
         function showItemDetails(itemId) {
             const item = inventory.find(i => i.itemId === itemId);
@@ -477,6 +535,10 @@
 
         addItemForm.addEventListener('submit', async function(event) {
             event.preventDefault();
+            const submitBtn = event.target.querySelector('button[type="submit"]');
+            submitBtn.classList.add('loading-animation');
+            submitBtn.disabled = true;
+
             const newItem = {
                 itemId: await generateItemId(),
                 itemName: document.getElementById('itemName').value,
@@ -505,7 +567,10 @@
                 itemIdInput.value = await generateItemId();
             } catch (error) {
                 console.error('Błąd podczas dodawania elementu:', error);
-                alert(`Nie udało się dodać elementu: ${error.message}`);
+                alert(`Nie udało się dodać elementu: ${error.message} 🚫`);
+            } finally {
+                submitBtn.classList.remove('loading-animation');
+                submitBtn.disabled = false;
             }
         });
 
@@ -521,20 +586,18 @@
                     alert(`Element ${itemId} usunięty pomyślnie!🗑️`);
                 } catch (error) {
                     console.error('Błąd podczas usuwania elementu:', error);
-                    alert(`Nie udało się usunąć elementu: ${error.message}`);
+                    alert(`Nie udało się usunąć elementu: ${error.message} 🚫`);
                 }
             }
         }
 
         async function updateQuantity(scannedItem, newQuantity) {
             try {
-                // 1. Delete the old item
                 const deleteResponse = await fetch(`${API_URL}/${scannedItem.itemId}`, { method: 'DELETE' });
                 if (!deleteResponse.ok) {
                     throw new Error(`Błąd HTTP podczas usuwania! Status: ${deleteResponse.status}`);
                 }
                 
-                // 2. Create a new item with the same data but updated quantity
                 const updatedItem = { ...scannedItem, quantity: newQuantity, lastUpdated: new Date().toISOString().slice(0, 10) };
                 const postResponse = await fetch(API_URL, {
                     method: 'POST',
@@ -550,7 +613,7 @@
                 return true;
             } catch (error) {
                 console.error('Błąd podczas aktualizacji ilości:', error);
-                alert(`Nie udało się zaktualizować ilości: ${error.message}`);
+                alert(`Nie udało się zaktualizować ilości: ${error.message} 🚫`);
                 return false;
             }
         }
@@ -580,6 +643,18 @@
             printContainer.innerHTML = '';
             const labelDiv = createLabelElement(item);
             printContainer.appendChild(labelDiv);
+            
+            // Fix for Firefox
+            if (window.matchMedia) {
+                const mediaQueryList = window.matchMedia('print');
+                mediaQueryList.addListener((mql) => {
+                    if (!mql.matches) {
+                        printContainer.innerHTML = '';
+                    }
+                });
+            }
+            window.onafterprint = () => { printContainer.innerHTML = ''; };
+
             window.print();
         }
 
@@ -594,11 +669,19 @@
                 const labelDiv = createLabelElement(item);
                 printContainer.appendChild(labelDiv);
             });
-            setTimeout(() => { 
-                window.print();
-                // Po wydruku lub anulowaniu okna drukowania, usuwamy etykiety
-                printContainer.innerHTML = ''; 
-            }, 200);
+            
+            // Fix for Firefox
+            if (window.matchMedia) {
+                const mediaQueryList = window.matchMedia('print');
+                mediaQueryList.addListener((mql) => {
+                    if (!mql.matches) {
+                        printContainer.innerHTML = '';
+                    }
+                });
+            }
+            window.onafterprint = () => { printContainer.innerHTML = ''; };
+
+            setTimeout(() => { window.print(); }, 200);
         });
 
         exportCsvBtn.addEventListener('click', () => {
@@ -620,6 +703,7 @@
             document.body.appendChild(link);
             link.click();
             document.body.removeChild(link);
+            alert('Dane zostały wyeksportowane do pliku CSV! 💾');
         });
 
         function initQrScanner() {
@@ -644,7 +728,8 @@
                 scannedItemId.textContent = `ID: ${item.itemId}`;
                 scannedItemQuantity.textContent = `${item.quantity} ${item.unit || ''}`;
                 scanResult.style.display = 'block';
-            } else { alert(`Nie znaleziono produktu o ID: ${decodedText}`); }
+                quantityChange.focus();
+            } else { alert(`Nie znaleziono produktu o ID: ${decodedText} 🧐`); }
         }
         
         function onScanFailure(error) { /* console.log('Skanowanie w toku...'); */ }
@@ -681,13 +766,21 @@
                 alert('Wprowadź poprawną liczbę sztuk!');
                 return;
             }
+            
+            updateInventoryBtn.classList.add('loading-animation');
+            updateInventoryBtn.disabled = true;
+
             const newQuantity = quantityOperation === 'add' ? scannedItem.quantity + changeValue : Math.max(0, scannedItem.quantity - changeValue);
             const success = await updateQuantity(scannedItem, newQuantity);
+            
             if (success) {
                 alert(`Stan magazynowy produktu "${scannedItem.itemName}" został zaktualizowany.✅`);
                 scannerModal.style.display = 'none';
                 stopQrScanner();
             }
+
+            updateInventoryBtn.classList.remove('loading-animation');
+            updateInventoryBtn.disabled = false;
         });
         
         document.querySelectorAll('th.sortable').forEach(header => {
