@@ -526,16 +526,26 @@
             }
         }
 
-        async function updateQuantity(itemId, newQuantity) {
+        async function updateQuantity(scannedItem, newQuantity) {
             try {
-                const item = inventory.find(item => item.itemId === itemId);
-                if (!item) throw new Error('Nie znaleziono produktu o podanym ID');
-                const response = await fetch(`${API_URL}/${itemId}`, {
-                    method: 'PUT',
+                // 1. Delete the old item
+                const deleteResponse = await fetch(`${API_URL}/${scannedItem.itemId}`, { method: 'DELETE' });
+                if (!deleteResponse.ok) {
+                    throw new Error(`Błąd HTTP podczas usuwania! Status: ${deleteResponse.status}`);
+                }
+                
+                // 2. Create a new item with the same data but updated quantity
+                const updatedItem = { ...scannedItem, quantity: newQuantity, lastUpdated: new Date().toISOString().slice(0, 10) };
+                const postResponse = await fetch(API_URL, {
+                    method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ quantity: newQuantity, lastUpdated: new Date().toISOString().slice(0, 10) })
+                    body: JSON.stringify(updatedItem)
                 });
-                if (!response.ok) throw new Error(`Błąd HTTP! Status: ${response.status}`);
+
+                if (!postResponse.ok) {
+                    throw new Error(`Błąd HTTP podczas dodawania! Status: ${postResponse.status}`);
+                }
+                
                 await fetchInventory();
                 return true;
             } catch (error) {
@@ -570,7 +580,7 @@
             printContainer.innerHTML = '';
             const labelDiv = createLabelElement(item);
             printContainer.appendChild(labelDiv);
-            setTimeout(() => { window.print(); }, 200);
+            window.print();
         }
 
         printLabelsBtn.addEventListener('click', function() {
@@ -584,7 +594,11 @@
                 const labelDiv = createLabelElement(item);
                 printContainer.appendChild(labelDiv);
             });
-            setTimeout(() => { window.print(); }, 200);
+            setTimeout(() => { 
+                window.print();
+                // Po wydruku lub anulowaniu okna drukowania, usuwamy etykiety
+                printContainer.innerHTML = ''; 
+            }, 200);
         });
 
         exportCsvBtn.addEventListener('click', () => {
@@ -668,7 +682,7 @@
                 return;
             }
             const newQuantity = quantityOperation === 'add' ? scannedItem.quantity + changeValue : Math.max(0, scannedItem.quantity - changeValue);
-            const success = await updateQuantity(scannedItem.itemId, newQuantity);
+            const success = await updateQuantity(scannedItem, newQuantity);
             if (success) {
                 alert(`Stan magazynowy produktu "${scannedItem.itemName}" został zaktualizowany.✅`);
                 scannerModal.style.display = 'none';
