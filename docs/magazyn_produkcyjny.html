@@ -131,7 +131,7 @@
         th.sortable:after { content: ' \25BC'; opacity: 0.5; }
         th.asc:after { content: ' \25B2'; opacity: 1; }
         th.desc:after { content: ' \25BC'; opacity: 1; }
-
+        
         tr:nth-child(even) { background-color: #f2f2f2; }
         tr:hover { background-color: #e8f4f8; }
 
@@ -218,6 +218,52 @@
             from { opacity: 0; }
             to { opacity: 1; }
         }
+
+        /* Drukowanie - kluczowa poprawka */
+        @media print {
+            body > *:not(.print-container) {
+                display: none;
+            }
+            .print-container {
+                position: static;
+                left: auto;
+                top: auto;
+                display: flex;
+                flex-wrap: wrap;
+                align-content: flex-start;
+                width: 100%;
+                margin: 0;
+                padding: 0;
+                z-index: auto;
+            }
+            .label-item {
+                display: inline-block;
+                width: 9cm;
+                height: 5cm;
+                border: 1px solid #333;
+                margin: 0.5cm;
+                padding: 0.5cm;
+                box-sizing: border-box;
+                text-align: center;
+                page-break-inside: avoid;
+                overflow: hidden;
+            }
+            .label-item .qr-code {
+                width: 3.5cm !important;
+                height: 3.5cm !important;
+                margin: 0 auto;
+                display: block;
+            }
+            .label-item h3 {
+                font-size: 14px;
+                font-weight: bold;
+                margin: 5px 0;
+            }
+            .label-item p {
+                font-size: 12px;
+                margin: 2px 0;
+            }
+        }
     </style>
 </head>
 <body>
@@ -301,7 +347,7 @@
         </div>
     </div>
 
-    <div id="printContainer" style="position: absolute; left: -9999px;"></div>
+    <div id="printContainer" class="print-container"></div>
 
     <div id="scannerModal" class="modal">
         <div class="modal-content">
@@ -371,7 +417,7 @@
             const lowStockItems = inventory.filter(item => item.reorderLevel !== null && item.quantity <= item.reorderLevel);
             if (lowStockItems.length > 0) {
                 lowStockAlert.style.display = 'flex';
-                lowStockAlert.querySelector('span').textContent = `Niski stan magazynowy dla ${lowStockItems.length} produktów.`;
+                lowStockAlert.querySelector('span').textContent = `Niski stan magazynowy dla ${lowStockItems.length} produktów!`;
             } else {
                 lowStockAlert.style.display = 'none';
             }
@@ -401,10 +447,11 @@
             inventoryTableBody.innerHTML = '';
             items.forEach(item => {
                 const row = inventoryTableBody.insertRow();
+                const isLowStock = item.reorderLevel !== null && item.quantity <= item.reorderLevel;
                 row.innerHTML = `
                     <td>${item.itemId}</td>
                     <td>${item.itemName}</td>
-                    <td>${item.quantity} ${item.unit || ''}</td>
+                    <td>${item.quantity} ${item.unit || ''} ${isLowStock ? '🚨' : '✅'}</td>
                     <td>${item.location || ''}</td>
                     <td class="action-buttons">
                         <button onclick="printSingleLabel('${item.itemId}')" class="btn btn-success" title="Drukuj"><i class="fa-solid fa-print"></i></button>
@@ -519,11 +566,11 @@
                 alert('Nie znaleziono elementu o podanym ID!');
                 return;
             }
-            const tempPrintContainer = document.getElementById('printContainer');
-            tempPrintContainer.innerHTML = '';
+            const printContainer = document.getElementById('printContainer');
+            printContainer.innerHTML = '';
             const labelDiv = createLabelElement(item);
-            tempPrintContainer.appendChild(labelDiv);
-            window.print();
+            printContainer.appendChild(labelDiv);
+            setTimeout(() => { window.print(); }, 200);
         }
 
         printLabelsBtn.addEventListener('click', function() {
